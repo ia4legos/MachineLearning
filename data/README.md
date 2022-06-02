@@ -21,6 +21,7 @@ Attribute Information
 10) bmi: body mass index
 11) smoking_status: "formerly smoked", "never smoked", "smokes" or "Unknown"*
 12) stroke: 1 if the patient had a stroke or 0 if not
+
 *Note: "Unknown" in smoking_status means that the information is unavailable for this patient
 
 [Descargar datos](https://www.kaggle.com/datasets/fedesoriano/stroke-prediction-dataset)
@@ -88,6 +89,20 @@ Attribute Information
 7) DiabetesPedigreeF..: Diabetes pedigree function
 8) Age: Age (years)
 9) Outcome: Class variable (0 or 1) 268 of 768 are 1, the others are 0
+
+Sources:
+(a) Original owners: National Institute of Diabetes and Digestive and Kidney Diseases
+(b) Donor of database: Vincent Sigillito (vgs@aplcen.apl.jhu.edu)
+Research Center, RMI Group Leader
+Applied Physics Laboratory
+The Johns Hopkins University
+Johns Hopkins Road
+Laurel, MD 20707
+(301) 953-6231
+(c) Date received: 9 May 1990
+
+[Descarga datos](https://www.kaggle.com/datasets/mathchi/diabetes-data-set)
+
 
 ## Cancer
 
