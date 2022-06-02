@@ -59,6 +59,18 @@ Attribute Information
 21) RainToday: Boolean: 1 if precipitation (mm) in the 24 hours to 9am exceeds 1mm, otherwise 0
 22) RainTomorrow: The amount of next day rain in mm. Used to create response variable RainTomorrow. A kind of measure of the "risk".
 
+[Descargar datos](https://www.kaggle.com/datasets/jsphyg/weather-dataset-rattle-package)
+
+Source & Acknowledgements
+Observations were drawn from numerous weather stations. The daily observations are available from http://www.bom.gov.au/climate/data.
+An example of latest weather observations in Canberra: http://www.bom.gov.au/climate/dwo/IDCJDW2801.latest.shtml
+
+Definitions adapted from http://www.bom.gov.au/climate/dwo/IDCJDW0000.shtml
+Data source: http://www.bom.gov.au/climate/dwo/ and http://www.bom.gov.au/climate/data.
+
+Copyright Commonwealth of Australia 2010, Bureau of Meteorology.
+
+
 ## Diabetes
 
 This dataset is originally from the National Institute of Diabetes and Digestive and Kidney Diseases. The objective of the dataset is to diagnostically predict whether or not a patient has diabetes, based on certain diagnostic measurements included in the dataset. Several constraints were placed on the selection of these instances from a larger database. In particular, all patients here are females at least 21 years old of Pima Indian heritage.
