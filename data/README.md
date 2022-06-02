@@ -31,6 +31,7 @@ Attribute Information
 Predict next-day rain by training classification models on the target variable RainTomorrow.
 
 Content
+
 This dataset contains about 10 years of daily weather observations from many locations across Australia.
 
 RainTomorrow is the target variable to predict. It means -- did it rain the next day, Yes or No? This column is Yes if the rain for that day was 1mm or more.
@@ -63,6 +64,7 @@ Attribute Information
 [Descargar datos](https://www.kaggle.com/datasets/jsphyg/weather-dataset-rattle-package)
 
 Source & Acknowledgements
+
 Observations were drawn from numerous weather stations. The daily observations are available from http://www.bom.gov.au/climate/data.
 An example of latest weather observations in Canberra: http://www.bom.gov.au/climate/dwo/IDCJDW2801.latest.shtml
 
