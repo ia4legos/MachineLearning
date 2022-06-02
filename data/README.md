@@ -2,7 +2,7 @@
 
 Ficheros de datos para análisis (extraidos de kaggle).
 
-## Stroke Prediction Dataset
+## Stroke Prediction Dataset 
 
 According to the World Health Organization (WHO) stroke is the 2nd leading cause of death globally, responsible for approximately 11% of total deaths.
 This dataset is used to predict whether a patient is likely to get stroke based on the input parameters like gender, age, various diseases, and smoking status. Each row in the data provides relavant information about the patient.
@@ -22,6 +22,8 @@ Attribute Information
 11) smoking_status: "formerly smoked", "never smoked", "smokes" or "Unknown"*
 12) stroke: 1 if the patient had a stroke or 0 if not
 *Note: "Unknown" in smoking_status means that the information is unavailable for this patient
+
+[Descargar datos](https://www.kaggle.com/datasets/fedesoriano/stroke-prediction-dataset)
 
 ## Rain in Australia
 
