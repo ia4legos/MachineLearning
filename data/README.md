@@ -216,6 +216,7 @@ Attribute Information:
 30) reservation_status: Reservation last status, assuming one of three categories: Canceled – booking was canceled by the customer; Check-Out
 31) reservation_status_date: Date at which the last status was set. This variable can be used in conjunction with the ReservationStatus to
 
+[Descargar datos](https://www.kaggle.com/datasets/abhi97/hotel-bookings)
 
 ## Student Alcohol Consumption
 
@@ -261,6 +262,17 @@ G1 - first period grade (numeric: from 0 to 20)
 G2 - second period grade (numeric: from 0 to 20)
 G3 - final grade (numeric: from 0 to 20, output target)
 
+
+Source Information
+
+P. Cortez and A. Silva. Using Data Mining to Predict Secondary School Student Performance. In A. Brito and J. Teixeira Eds., Proceedings of 5th FUture BUsiness TEChnology Conference (FUBUTEC 2008) pp. 5-12, Porto, Portugal, April, 2008, EUROSIS, ISBN 978-9077381-39-7.
+
+Fabio Pagnotta, Hossain Mohammad Amran.
+Email:fabio.pagnotta@studenti.unicam.it, mohammadamra.hossain '@' studenti.unicam.it
+University Of Camerino
+
+https://archive.ics.uci.edu/ml/datasets/STUDENT+ALCOHOL+CONSUMPTION
+
 ## Housing
 
 This is the dataset used in the second chapter of Aurélien Géron's recent book 'Hands-On Machine learning with Scikit-Learn and TensorFlow'. It serves as an excellent introduction to implementing machine learning algorithms because it requires rudimentary data cleaning, has an easily understandable list of variables and sits at an optimal size between being to toyish and too cumbersome.
@@ -279,6 +291,17 @@ About this file
 8) medianIncome: Median income for households within a block of houses (measured in tens of thousands of US Dollars)
 9) medianHouseValue: Median house value for households within a block (measured in US Dollars)
 10) oceanProximity: Location of the house w.r.t ocean/sea
+
+Acknowledgements
+This data was initially featured in the following paper:
+Pace, R. Kelley, and Ronald Barry. "Sparse spatial autoregressions." Statistics & Probability Letters 33.3 (1997): 291-297.
+
+and I encountered it in 'Hands-On Machine learning with Scikit-Learn and TensorFlow' by Aurélien Géron.
+Aurélien Géron wrote:
+This dataset is a modified version of the California Housing dataset available from:
+Luís Torgo's page (University of Porto)
+
+[Descargar datos](https://www.kaggle.com/datasets/camnugent/california-housing-prices)
 
 
 ## Air_population_seoul
@@ -305,6 +328,7 @@ About this file
 10) PM10 (Microgram/m3): (Good) 30.0;	(Normal) 80.0;	(Bad) 150.0;	(Very bad) 600.0
 11) PM2.5 (Microgram/m3): (Good) 15.0;	(Normal) 35.0;	(Bad) 75.0;	(Very bad) 500.0
 
+[Descargar datos](https://www.kaggle.com/datasets/bappekim/air-pollution-in-seoul)
 
 ## Cereal
 
@@ -334,6 +358,12 @@ Fields in the dataset:
 15) cups: number of cups in one serving
 16) rating: a rating of the cereals (Possibly from Consumer Reports?)
 
+Acknowledgements
+
+These datasets have been gathered and cleaned up by Petra Isenberg, Pierre Dragicevic and Yvonne Jansen. The original source can be found here
+
+[Descargar datos](https://www.kaggle.com/datasets/crawford/80-cereals)
+
 ## winequality-red
 
 Context
@@ -343,6 +373,7 @@ This datasets is related to red variants of the Portuguese "Vinho Verde" wine. F
 Content
 
 For more information, read [Cortez et al., 2009].
+
 Input variables (based on physicochemical tests):
 1) fixed acidity (most acids involved with wine or fixed or nonvolatile (do not evaporate readily))
 2) volatile acidity (the amount of acetic acid in wine, which at too high of levels can lead to an unpleasant, vinegar taste)
@@ -356,6 +387,8 @@ Input variables (based on physicochemical tests):
 10) sulphates (a wine additive which can contribute to sulfur dioxide gas (S02) levels, wich acts as an antimicrobial and)
 11) alcohol (the percent alcohol content of the wine)
 12) quality (score between 0 and 10;  6.5 => "good")
+
+[Descargar datos](https://www.kaggle.com/datasets/sh6147782/winequalityred)
 
 ## Melbourne Housing Snapshot (melb data set)
 
@@ -378,6 +411,8 @@ Notes on Specific Variables
 13) Landsize: Land Size
 14) BuildingArea: Building Size
 15) CouncilArea: Governing council for the area
+
+[Descargar datos](https://www.kaggle.com/code/rhodamine6g/melbourne-housing-price-predictor)
 
 ## Marketing Analytics
 
@@ -412,11 +447,17 @@ The is a CSV file of 2240 observations (customers) with 28 variables related to 
 27) Complain: 1 if customer complained in the last 2 years, 0 otherwise
 28) Country: Customer's location
 
+[Descargar datos](https://www.kaggle.com/code/chiamakauwaezuoke/marketing-data-analysis/data)
+
 ## Iris Flower Dataset
 
 The Iris flower data set is a multivariate data set introduced by the British statistician and biologist Ronald Fisher in his 1936 paper The use of multiple measurements in taxonomic problems. It is sometimes called Anderson's Iris data set because Edgar Anderson collected the data to quantify the morphologic variation of Iris flowers of three related species. The data set consists of 50 samples from each of three species of Iris (Iris Setosa, Iris virginica, and Iris versicolor). Four features were measured from each sample: the length and the width of the sepals and petals, in centimeters.
 
 The dataset contains a set of 150 records under 5 attributes - Petal Length, Petal Width, Sepal Length, Sepal width and Class(Species).
+
+Acknowledgements
+
+This dataset is free and is publicly available at the UCI Machine Learning Repository
 
 
 
