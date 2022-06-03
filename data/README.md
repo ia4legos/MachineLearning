@@ -4,8 +4,7 @@ Ficheros de datos para análisis (extraidos de kaggle).
 
 ## Stroke Prediction Dataset 
 
-According to the World Health Organization (WHO) stroke is the 2nd leading cause of death globally, responsible for approximately 11% of total deaths.
-This dataset is used to predict whether a patient is likely to get stroke based on the input parameters like gender, age, various diseases, and smoking status. Each row in the data provides relavant information about the patient.
+Según la Organización Mundial de la Salud (OMS), el ictus es la segunda causa de muerte en el mundo, responsable de aproximadamente el 11% del total de fallecimientos. Este conjunto de datos se utiliza para predecir si un paciente tiene más o menos probabilidad de sufrir un ictus, en función de su género, edad, enfermedades y estatus de fumador. Cada fila en los datos proporciona información relevante sobre cada paciente. 
 
 Attribute Information
 
@@ -28,13 +27,7 @@ Attribute Information
 
 ## Rain in Australia
 
-Predict next-day rain by training classification models on the target variable RainTomorrow.
-
-Content
-
-This dataset contains about 10 years of daily weather observations from many locations across Australia.
-
-RainTomorrow is the target variable to predict. It means -- did it rain the next day, Yes or No? This column is Yes if the rain for that day was 1mm or more.
+Este conjunto de datos contiene unos 10 años de observaciones meteorológicas diarias de muchos lugares de Australia. El objetivo es predecir si al día siguiente lloverá, hecho que viene reflejado en la variable RainTomorrow, con respuestas Sí (si la lluvia de ese día fue de 1mm o más) o No.
 
 Attribute Information
 
@@ -74,11 +67,9 @@ Data source: http://www.bom.gov.au/climate/dwo/ and http://www.bom.gov.au/climat
 Copyright Commonwealth of Australia 2010, Bureau of Meteorology.
 
 
-## Diabetes
+## Pima Indian Diabetes
 
-This dataset is originally from the National Institute of Diabetes and Digestive and Kidney Diseases. The objective of the dataset is to diagnostically predict whether or not a patient has diabetes, based on certain diagnostic measurements included in the dataset. Several constraints were placed on the selection of these instances from a larger database. In particular, all patients here are females at least 21 years old of Pima Indian heritage.
-
-The datasets consists of several medical predictor variables and one target variable, Outcome. Predictor variables includes the number of pregnancies the patient has had, their BMI, insulin level, age, and so on.
+Este conjunto de datos procede del Instituto Nacional de Diabetes y Enfermedades Digestivas y Renales. El objetivo del estudio es predecir si un paciente tiene o no diabetes, basándose en determinadas mediciones diagnósticas incluidas en el conjunto de datos. Los datos considerados provienen de imponer una serie de restricciones a una base de datos más extensa; en concreto, todos los pacientes son mujeres de al menos 21 años de edad y de ascendencia india pima. Los datos contienen diversas variables médicas predictoras y una variable objetivo, Outcome, que indica si la paciente tiene o no diabetes. Las variables predictoras incluyen el número de embarazos que ha tenido la paciente, su IMC, su nivel de insulina, su edad, etc.
 
 Attribute Information
 
@@ -106,16 +97,11 @@ Laurel, MD 20707
 [Descarga datos](https://www.kaggle.com/datasets/mathchi/diabetes-data-set)
 
 
-## Cancer
+## Breast Cancer Wisconsin
 
-Features are computed from a digitized image of a fine needle aspirate (FNA) of a breast mass. They describe characteristics of the cell nuclei present in the image.
-n the 3-dimensional space is that described in: [K. P. Bennett and O. L. Mangasarian: "Robust Linear Programming Discrimination of Two Linearly Inseparable Sets", Optimization Methods and Software 1, 1992, 23-34].
+El conjunto de datos hace referencia a un estudio de cácer de mama a partir de las imágenes digitalizadas de un aspirado con aguja fina (FNA) de una masa mamaria. Se recogen las características del núcleo celular presente en la imagen. Esta base de datos está disponible en el UCI Machine Learning repository. [K. P. Bennett and O. L. Mangasarian: "Robust Linear Programming Discrimination of Two Linearly Inseparable Sets", Optimization Methods and Software 1, 1992, 23-34].
 
-This database is also available through the UW CS ftp server:
-ftp ftp.cs.wisc.edu
-cd math-prog/cpo-dataset/machine-learn/WDBC/
-
-Also can be found on UCI Machine Learning Repository: https://archive.ics.uci.edu/ml/datasets/Breast+Cancer+Wisconsin+%28Diagnostic%29
+Este banco de datos puede ser encontrado en UCI Machine Learning Repository: https://archive.ics.uci.edu/ml/datasets/Breast+Cancer+Wisconsin+%28Diagnostic%29
 
 Attribute Information:
 
@@ -143,11 +129,11 @@ resulting in 30 features. For instance, field 3 is Mean Radius, field
 
 All feature values are recoded with four significant digits.
 
-## Mushrooms
+## Mushroom classification
 
-Although this dataset was originally contributed to the UCI Machine Learning repository nearly 30 years ago, mushroom hunting (otherwise known as "shrooming") is enjoying new peaks in popularity. Learn which features spell certain death and which are most palatable in this dataset of mushroom characteristics. And how certain can your model be?
+La "caza de setas" (también conocida como "shrooming" en inglés) está disfrutando de nuevos picos de popularidad. Conocer qué características significan una muerte segura y cuáles son más apetecibles es un aspecto muy importante en este proceso. Este conjunto de datos muestra las características de una muestra muy extensa de diferentes tipos de setas.
 
-This dataset includes descriptions of hypothetical samples corresponding to 23 species of gilled mushrooms in the Agaricus and Lepiota Family Mushroom drawn from The Audubon Society Field Guide to North American Mushrooms (1981). Each species is identified as definitely edible, definitely poisonous, or of unknown edibility and not recommended. This latter class was combined with the poisonous one. The Guide clearly states that there is no simple rule for determining the edibility of a mushroom; no rule like "leaflets three, let it be'' for Poisonous Oak and Ivy.
+En concreto se incluyen descripciones de 23 especies de setas con agallas de la familia Agaricus y Lepiota, extraídas de The Audubon Society Field Guide to North American Mushrooms (1981). Cada especie se identifica como: "definitivamente comestible", "definitivamente venenosa", o "de comestibilidad desconocida y no recomendada". Esta última clase se combinó con la venenosa.
 
 Attribute Information: (classes: edible=e, poisonous=p)
 
@@ -176,11 +162,11 @@ Attribute Information: (classes: edible=e, poisonous=p)
 
 [Descarga datos](https://www.kaggle.com/datasets/uciml/mushroom-classification)
 
-## hotel_bookings
+## Hotel bookings
 
-This data set contains booking information for a city hotel and a resort hotel, and includes information such as when the booking was made, length of stay, the number of adults, children, and/or babies, and the number of available parking spaces, among other things.
+¿Se ha preguntado alguna vez cuál es la mejor época del año para reservar una habitación de hotel? ¿O la duración óptima de la estancia para conseguir la mejor tarifa diaria? ¿Y si quisiera predecir si un hotel tiene probabilidades de recibir un número desproporcionadamente alto de solicitudes especiales?
 
-All personally identifying information has been removed from the data.
+Este conjunto de datos de reservas de hoteles puede ayudarle a explorar esas cuestiones. Este conjunto de datos contiene información sobre las reservas de un hotel urbano y de un hotel turístico, e incluye información como la fecha en que se hizo la reserva, la duración de la estancia, el número de adultos, niños y/o bebés, y el número de plazas de aparcamiento disponibles, entre otras cosas.
 
 Attribute Information:
 
@@ -220,8 +206,7 @@ Attribute Information:
 
 ## Student Alcohol Consumption
 
-
-The data were obtained in a survey of students math and portuguese language courses in secondary school. It contains a lot of interesting social, gender and study information about students. You can use it for some EDA or try to predict students final grade.
+Los datos de consumo de alcohol entre adolescentes se obtuvieron en una encuesta realizada a los alumnos de los cursos de matemáticas y lengua portuguesa de enseñanza secundaria. Además de las variables refereidas al consumo se dipone de mucha información social, de género y de estudio interesante sobre los estudiantes. Este banco de datos se puede utilizar para un análisis exploratorio de datos o para intentar predecir la nota final de los estudiantes.
 
 Attributes for student-mat.csv:
 
@@ -273,11 +258,11 @@ University Of Camerino
 
 https://archive.ics.uci.edu/ml/datasets/STUDENT+ALCOHOL+CONSUMPTION
 
-## Housing
+## California Housing Prices
 
-This is the dataset used in the second chapter of Aurélien Géron's recent book 'Hands-On Machine learning with Scikit-Learn and TensorFlow'. It serves as an excellent introduction to implementing machine learning algorithms because it requires rudimentary data cleaning, has an easily understandable list of variables and sits at an optimal size between being to toyish and too cumbersome.
+Este es el conjunto de datos utilizado en el segundo capítulo del reciente libro de Aurélien Géron "Hands-On Machine learning with Scikit-Learn and TensorFlow". Sirve como una excelente introducción a la implementación de algoritmos de aprendizaje automático porque requiere una limpieza de datos rudimentaria, tiene una lista de variables fácilmente comprensible y se sitúa en un tamaño óptimo entre ser demasiado simple y demasiado engorroso.
 
-The data contains information from the 1990 California census. So although it may not help you with predicting current housing prices like the Zillow Zestimate dataset, it does provide an accessible introductory dataset for teaching people about the basics of machine learning.
+Los datos contienen información del censo viviendas de California de 1990. Por lo tanto, aunque no pueda ayudar a predecir los precios actuales de la vivienda, proporciona un conjunto de datos introductorio accesible para enseñar a la gente los fundamentos del aprendizaje automático.
 
 About this file
 
@@ -304,15 +289,11 @@ Luís Torgo's page (University of Porto)
 [Descargar datos](https://www.kaggle.com/datasets/camnugent/california-housing-prices)
 
 
-## Air_population_seoul
+## Air pollution in Seoul
 
-This dataset deals with air pollution measurement information in Seoul, South Korea.
-Seoul Metropolitan Government provides many public data, including air pollution information, through the 'Open Data Plaza'
-I made a structured dataset by collecting and adjusting various air pollution related datasets provided by the Seoul Metropolitan Government
+Este conjunto de datos contiene información sobre la medición de la contaminación atmosférica en Seúl (Corea del Sur). El Gobierno Metropolitano de Seúl proporciona muchos datos públicos, incluida la información sobre la contaminación atmosférica, a través de la "Plaza de Datos Abiertos".
 
-This data provides average values for six pollutants (SO2, NO2, CO, O3, PM10, PM2.5).
-Data were measured every six hours between 2017 and 2019.
-Data were measured for 25 districts in Seoul.
+En este subconjunto de datos se proporcionan los valores medios de seis contaminantes (SO2, NO2, CO, O3, PM10, PM2,5). Los datos se midieron cada seis horas entre 2017 y 2019. Los datos se midieron en 25 distritos de Seúl. Estos datos proceden del conjunto de datos de resumen de mediciones.
 
 About this file
 
@@ -330,7 +311,9 @@ About this file
 
 [Descargar datos](https://www.kaggle.com/datasets/bappekim/air-pollution-in-seoul)
 
-## Cereal
+## Cereals
+
+Esta base de datos contiene información nutricional sobre distintos tipos de cereales.
 
 Fields in the dataset:
 
@@ -364,17 +347,13 @@ These datasets have been gathered and cleaned up by Petra Isenberg, Pierre Dragi
 
 [Descargar datos](https://www.kaggle.com/datasets/crawford/80-cereals)
 
-## winequality-red
+## Winequality-red
 
-Context
+Este conjunto de datos está relacionado con las variantes rojas del vino portugués "Vinho Verde". Para más detalles, consulte la referencia [Cortez et al., 2009]. Debido a cuestiones de privacidad y logística, sólo se dispone de variables fisicoquímicas (entradas) y sensoriales (la salida) (por ejemplo, no hay datos sobre tipos de uva, marca de vino, precio de venta del vino, etc.). Este conjunto de datos también está disponible en el repositorio de aprendizaje automático de la UCI, https://archive.ics.uci.edu/ml/datasets/wine+quality. Las variables provienen de tests psicoquímicos.
 
-This datasets is related to red variants of the Portuguese "Vinho Verde" wine. For more details, consult the reference [Cortez et al., 2009]. Due to privacy and logistic issues, only physicochemical (inputs) and sensory (the output) variables are available (e.g. there is no data about grape types, wine brand, wine selling price, etc.). This dataset is also available from the UCI machine learning repository, https://archive.ics.uci.edu/ml/datasets/wine+quality , I just shared it to kaggle for convenience. (If I am mistaken and the public license type disallowed me from doing so, I will take this down if requested.)
-
-Content
-
-For more information, read [Cortez et al., 2009].
 
 Input variables (based on physicochemical tests):
+
 1) fixed acidity (most acids involved with wine or fixed or nonvolatile (do not evaporate readily))
 2) volatile acidity (the amount of acetic acid in wine, which at too high of levels can lead to an unpleasant, vinegar taste)
 3) citric acid (found in small quantities, citric acid can add 'freshness' and flavor to wines)
