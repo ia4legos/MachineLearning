@@ -1,4 +1,4 @@
-,id,gender,age,hypertension,heart_disease,ever_married,work_type,Residence_type,avg_glucose_level,bmi,smoking_status,stroke,hypertension_cod,heart_disease_cod,stroke_cod,age_cod,avg_glucose_level_cod,bmi_cod
+number,id,gender,age,hypertension,heart_disease,ever_married,work_type,Residence_type,avg_glucose_level,bmi,smoking_status,stroke,hypertension_cod,heart_disease_cod,stroke_cod,age_cod,avg_glucose_level_cod,bmi_cod
 0,9046,Male,67.0,No,Yes,Yes,Private,Urban,228.69,36.6,formerly smoked,Yes,0,1,1,1.0514342842814732,2.7063754415827868,1.0050859652921758
 1,51676,Female,61.0,No,No,Yes,Self-employed,Rural,202.21,28.1,never smoked,Yes,0,0,1,0.7860700726610688,2.1215585391500795,-0.0989809248336594
 2,31112,Male,80.0,No,Yes,Yes,Private,Rural,105.92,32.5,never smoked,Yes,0,1,1,1.6263900761256826,-0.005028301304808307,0.4725360535844198
