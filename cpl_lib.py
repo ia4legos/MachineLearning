@@ -1,3 +1,10 @@
+import numpy as np          
+import pandas as pd         
+import math
+import random                 
+import matplotlib.pyplot as plt
+import seaborn as sns
+
 def var_contrib(solcp, X):
     """
     Función para obtener los loadings de cada variable en el análisis de CP lineales, y las coordenadas de los sujetos en las CP
