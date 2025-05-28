@@ -1,3 +1,10 @@
+import numpy as np          
+import pandas as pd         
+import math
+import random                 
+import matplotlib.pyplot as plt
+import seaborn as sns
+
 def var_contrib(solcp, X):
     """
     Función para obtener los loadings de cada variable en el análisis de CP lineales, y las coordenadas de los sujetos en las CP
@@ -121,7 +128,7 @@ def biplot_loadings(loadings, hg, wd):
   - hg: height del gráfico
   - wd: aspecto del gráfico
 
-  """
+  """  
   sns.relplot(x=loadings["CP1"], y=loadings["CP2"], data=loadings, height = hg, aspect = wd, color="black")
   plt.axvline(x = 0, color = 'r', linestyle = 'dotted')
   plt.axhline(y = 0, color = 'r', linestyle = 'dotted')
