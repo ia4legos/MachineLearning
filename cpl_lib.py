@@ -14,26 +14,23 @@ def var_contrib(solcp, X):
     - X: dataframe de datos utilzado para la solución CP
 
     Devuelve:
-    - Dataframe de loadings con nombres de variables
+    - Dataframe de pesos con nombres de variables
     - Dataframe de coordenadas de los sujetos en las CP
     """
     # Obtener el número de componentes extraídas por PCA
-    n_components = pca_colorectal.n_components_
+    n_components = solcp.n_components_
     # Crear los nombres de las componentes
     component_names = [f"CP{i+1}" for i in range(n_components)]
-    # loadings
-    loadings = pd.DataFrame(
-         data    = pca_colorectal.components_,
-         columns = X.columns,
-         index   = component_names
-     ).T # Transpose to have Variables as rows and CPs as columns
-     # coordenadas (scores)
-     projected = pd.DataFrame(
-          data    = pca_colorectal.transform(X), # Use transform on X directly
-          columns = component_names # Use the same component names
-     )
-     # Devolvemos dataframes
-     return loadings, projected
+
+    # Crear DataFrame de loadings
+    # Las filas son las variables originales, las columnas son las componentes
+    pesos = pd.DataFrame(solcp.components_.T, index=X.columns, columns=component_names)
+
+    # Crear DataFrame de coordenadas
+    # Las filas son las muestras, las columnas son las componentes
+    coordenadas = pd.DataFrame(solcp.transform(X), index=X.index, columns=component_names)
+
+    return pesos, coordenadas
 
 
 def plot_var_explained(solcp, lx, ly):
