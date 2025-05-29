@@ -17,12 +17,6 @@ def var_contrib(solcp, X):
     - Dataframe de loadings con nombres de variables
     - Dataframe de coordenadas de los sujetos en las CP
     """
-    import numpy as np          
-    import pandas as pd         
-    import math
-    import random                 
-    import matplotlib.pyplot as plt
-    import seaborn as sns
     # loadings
     loadings = pd.DataFrame(
           data    = solcp.components_,
@@ -47,14 +41,7 @@ def plot_var_explained(solcp, lx, ly):
     - solcp: dataframe con la solución de las componentes principales
     - lx: anchura del eje x
     - ly: anchura del eje y
-    """
-    import numpy as np          
-    import pandas as pd         
-    import math
-    import random                 
-    import matplotlib.pyplot as plt
-    import seaborn as sns
-    
+    """    
     componentes = np.arange(solcp.n_components_) + 1
     cumVar = pd.DataFrame(np.cumsum(solcp.explained_variance_ratio_)*100,
                       columns=["Varianza acumulada"])
@@ -102,12 +89,6 @@ def optim_ncomp(solcp, vexp):
     - vexp: variabildiad explicada requerida expresada en porcentaje
 
     """
-    import numpy as np          
-    import pandas as pd         
-    import math
-    import random                 
-    import matplotlib.pyplot as plt
-    import seaborn as sns
     componentes = np.arange(solcp.n_components_) + 1
     cumVar = pd.DataFrame(np.cumsum(solcp.explained_variance_ratio_)*100,
                       columns=["Vacum"])
@@ -128,13 +109,6 @@ def plot_contrib(loadings, cp, lx, ly):
   - lx: anchura del eje x (contribuciones)
   - ly: anchura del eje y (variables)
   """
-  import numpy as np          
-  import pandas as pd         
-  import math
-  import random                 
-  import matplotlib.pyplot as plt
-  import seaborn as sns  
-    
   loadings_ord = loadings.sort_values(by=cp, ascending=False)
   # Crear el gráfico de barras
   plt.figure(figsize=(lx, ly))
@@ -155,13 +129,6 @@ def biplot_loadings(loadings, hg, wd):
   - wd: aspecto del gráfico
 
   """  
-  import numpy as np          
-  import pandas as pd         
-  import math
-  import random                 
-  import matplotlib.pyplot as plt
-  import seaborn as sns
-
   sns.relplot(x=loadings["CP1"], y=loadings["CP2"], data=loadings, height = hg, aspect = wd, color="black")
   plt.axvline(x = 0, color = 'r', linestyle = 'dotted')
   plt.axhline(y = 0, color = 'r', linestyle = 'dotted')
@@ -169,7 +136,7 @@ def biplot_loadings(loadings, hg, wd):
   plt.ylabel("Componente 2")
   for i in range(loadings.shape[0]):
         plt.text(loadings.CP1[i]+0.01, loadings.CP2[i], loadings.Variable[i],ha = 'left', va = 'center')
-  for i in range(len(loadings_cp)):
+  for i in range(len(loadings)):
     plt.arrow(0, 0, loadings['CP1'][i], loadings['CP2'][i], color='black')
     plt.scatter(loadings.CP1[i], loadings.CP2[i], color = 'black')
   plt.show()
@@ -186,13 +153,6 @@ def biplot_coordenadas(projected, y, hg, wd):
   - wd: aspecto del gráfico
 
   """
-  import numpy as np          
-  import pandas as pd         
-  import math
-  import random                 
-  import matplotlib.pyplot as plt
-  import seaborn as sns
-    
   # Combinamos coordendas con target
   projected =pd.concat([y, projected], axis=1).rename({y.name: 'Target'},axis=1)
   if y.dtype == 'object' or y.dtype.name == 'category' or y.dtype.name == 'boolean':
@@ -223,13 +183,6 @@ def biplot_conjoint(loadings, projected, y, hg, wd):
   - wd: aspecto del gráfico
 
   """
-  import numpy as np          
-  import pandas as pd         
-  import math
-  import random                 
-  import matplotlib.pyplot as plt
-  import seaborn as sns
-    
   # Combinamos coordendas con target
   projected = pd.concat([y, projected], axis=1).rename({y.name: 'Target'},axis=1)
   xs = projected["CP1"]
@@ -250,7 +203,7 @@ def biplot_conjoint(loadings, projected, y, hg, wd):
   ### gráfico de loadings
   for i in range(loadings.shape[0]):
         plt.text(loadings.CP1[i]+0.01, loadings.CP2[i], loadings.Variable[i], ha = 'left', va = 'center')
-  for i in range(len(loadings_cp)):
+  for i in range(len(loadings)):
     plt.arrow(0, 0, loadings['CP1'][i], loadings['CP2'][i], color='black')
     plt.scatter(loadings.CP1[i], loadings.CP2[i], color = 'black')
 
