@@ -17,20 +17,23 @@ def var_contrib(solcp, X):
     - Dataframe de loadings con nombres de variables
     - Dataframe de coordenadas de los sujetos en las CP
     """
+    # Obtener el número de componentes extraídas por PCA
+    n_components = pca_colorectal.n_components_
+    # Crear los nombres de las componentes
+    component_names = [f"CP{i+1}" for i in range(n_components)]
     # loadings
     loadings = pd.DataFrame(
-          data    = solcp.components_,
-          columns = X.columns,
-          index   = [f"CP{i+1}" for i in range(X.shape[1])],
-    ).T
-    loadings = loadings.reset_index().rename({'index': 'Variable'}, axis=1)
-
-    # coordenadas
-    projected = pd.DataFrame(
-          data    = solcp.fit_transform(X),
-          columns = [f"CP{i+1}" for i in range(X.shape[1])])
-    # Devolvemos dataframes
-    return loadings, projected
+         data    = pca_colorectal.components_,
+         columns = X.columns,
+         index   = component_names
+     ).T # Transpose to have Variables as rows and CPs as columns
+     # coordenadas (scores)
+     projected = pd.DataFrame(
+          data    = pca_colorectal.transform(X), # Use transform on X directly
+          columns = component_names # Use the same component names
+     )
+     # Devolvemos dataframes
+     return loadings, projected
 
 
 def plot_var_explained(solcp, lx, ly):
