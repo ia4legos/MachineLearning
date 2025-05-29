@@ -18,16 +18,16 @@ def var_contrib(solcp, X):
     - Dataframe de coordenadas de los sujetos en las CP
     """
     # Obtener los loadings (pesos de las variables)
-    loadings = pd.DataFrame(pca.components_.T,
-                            columns=[f'CP{i+1}' for i in range(pca.n_components_)],
+    loadings = pd.DataFrame(solcp.components_.T,
+                            columns=[f'CP{i+1}' for i in range(solcp.n_components_)],
                             index=X.columns)
 
     # Añadir una columna 'Variable' con los nombres de las variables originales
     loadings['Variable'] = X.columns
 
     # Obtener las coordenadas de las muestras
-    coordenadas = pd.DataFrame(pca.transform(X),
-                               columns=[f'CP{i+1}' for i in range(pca.n_components_)],
+    coordenadas = pd.DataFrame(solcp.transform(X),
+                               columns=[f'CP{i+1}' for i in range(solcp.n_components_)],
                                index=X.index)
 
     return loadings, coordenadas
