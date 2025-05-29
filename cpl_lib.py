@@ -135,10 +135,10 @@ def biplot_loadings(loadings, hg, wd):
   plt.xlabel("Componente 1")
   plt.ylabel("Componente 2")
   for i in range(loadings.shape[0]):
-        plt.text(loadings.CP1[i]+0.01, loadings.CP2[i], loadings.Variable[i],ha = 'left', va = 'center')
+        plt.text(loadings.CP1.iloc[i]+0.01, loadings.CP2.iloc[i], loadings.Variable.iloc[i],ha = 'left', va = 'center')
   for i in range(len(loadings)):
-    plt.arrow(0, 0, loadings['CP1'][i], loadings['CP2'][i], color='black')
-    plt.scatter(loadings.CP1[i], loadings.CP2[i], color = 'black')
+    plt.arrow(0, 0, loadings.CP1.iloc[i], loadings.CP2.iloc[i], color='black')
+    plt.scatter(loadings.CP1.iloc[i], loadings.CP2.iloc[i], color = 'black')
   plt.show()
 
 
@@ -202,10 +202,10 @@ def biplot_conjoint(loadings, projected, y, hg, wd):
             data=projected, height = hg, aspect = wd)
   ### gráfico de loadings
   for i in range(loadings.shape[0]):
-        plt.text(loadings.CP1[i]+0.01, loadings.CP2[i], loadings.Variable[i], ha = 'left', va = 'center')
+        plt.text(loadings.CP1.iloc[i]+0.01, loadings.CP2.iloc[i], loadings.Variable.iloc[i], ha = 'left', va = 'center')
   for i in range(len(loadings)):
-    plt.arrow(0, 0, loadings['CP1'][i], loadings['CP2'][i], color='black')
-    plt.scatter(loadings.CP1[i], loadings.CP2[i], color = 'black')
+    plt.arrow(0, 0, loadings.CP1.iloc[i], loadings.CP2.iloc[i], color='black')
+    plt.scatter(loadings.CP1.iloc[i], loadings.CP2.iloc[i], color = 'black')
 
   plt.axvline(x = 0, color = 'r', linestyle = 'dotted')
   plt.axhline(y = 0, color = 'r', linestyle = 'dotted')
