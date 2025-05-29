@@ -17,20 +17,20 @@ def var_contrib(solcp, X):
     - Dataframe de pesos con nombres de variables
     - Dataframe de coordenadas de los sujetos en las CP
     """
-    # Obtener el número de componentes extraídas por PCA
-    n_components = solcp.n_components_
-    # Crear los nombres de las componentes
-    component_names = [f"CP{i+1}" for i in range(n_components)]
+    # Obtener los loadings (pesos de las variables)
+    loadings = pd.DataFrame(pca.components_.T,
+                            columns=[f'CP{i+1}' for i in range(pca.n_components_)],
+                            index=X.columns)
 
-    # Crear DataFrame de loadings
-    # Las filas son las variables originales, las columnas son las componentes
-    pesos = pd.DataFrame(solcp.components_.T, index=X.columns, columns=component_names)
+    # Añadir una columna 'Variable' con los nombres de las variables originales
+    loadings['Variable'] = X.columns
 
-    # Crear DataFrame de coordenadas
-    # Las filas son las muestras, las columnas son las componentes
-    coordenadas = pd.DataFrame(solcp.transform(X), index=X.index, columns=component_names)
+    # Obtener las coordenadas de las muestras
+    coordenadas = pd.DataFrame(pca.transform(X),
+                               columns=[f'CP{i+1}' for i in range(pca.n_components_)],
+                               index=X.index)
 
-    return pesos, coordenadas
+    return loadings, coordenadas
 
 
 def plot_var_explained(solcp, lx, ly):
