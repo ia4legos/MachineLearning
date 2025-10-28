@@ -176,7 +176,7 @@ def comparar_clasificador_2cls(X_train, y_train, models_to_train = None):
                                           Si es None, entrena todos los modelos definidos.
 
     Returns:
-        pd.DataFrame: DataFrame con las métricas (Precision, Recall, F1) para cada modelo.
+        pd.DataFrame: DataFrame con las métricas (accuracy, balanced accuracy, Recall, F1, auc) para cada modelo.
     """
 
     # Definir los modelos a entrenar (conjunto completo)
