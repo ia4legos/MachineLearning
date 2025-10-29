@@ -53,7 +53,7 @@ def preprocesar_datos(df, target):
     """
 
     # Seleccionamos datos de trabajo si tenemos o no el target
-    if target = "None":
+    if target == "None":
       dfs = df.copy()
     else:
       dfs = df.drop(target, axis=1)
@@ -130,7 +130,7 @@ def preprocesar_datos(df, target):
           all_feature_names = list(cat_feature_names)
           df_preprocessed = pd.DataFrame(df_preprocessed, columns=all_feature_names, index=df.index)
 
-    if target = "None":
+    if target == "None":
       datos = df_preprocessed.copy()
     else:
       datos = pd.concat([df_preprocessed, df[target]], axis=1)
