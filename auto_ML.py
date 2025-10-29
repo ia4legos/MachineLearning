@@ -46,14 +46,17 @@ def preprocesar_datos(df, target):
 
     Args:
         df (pd.DataFrame): El DataFrame a preprocesar.
-        target (str): El nombre de la columna objetivo.
+        target (str): El nombre de la columna objetivo. Si es None preprocesamos sin target
 
     Returns:
         pd.DataFrame: El DataFrame preprocesado.
     """
 
-    # quitamos el target para el preprocesado
-    dfs = df.drop(target, axis=1)
+    # Seleccionamos datos de trabajo si tenemos o no el target
+    if target = "None":
+      dfs = df.drop(target, axis=1)
+    else:
+      dfs = df.copy()
 
     # Identificar tipos de variables
     numeric_features = dfs.select_dtypes(include=np.number).columns
@@ -127,7 +130,10 @@ def preprocesar_datos(df, target):
           all_feature_names = list(cat_feature_names)
           df_preprocessed = pd.DataFrame(df_preprocessed, columns=all_feature_names, index=df.index)
 
-    datos = pd.concat([df_preprocessed, df[target]], axis=1)
+    if target = "None":
+      datos = df_preprocessed.copy()
+    else:
+      datos = pd.concat([df_preprocessed, df[target]], axis=1)
 
     return datos
 
@@ -176,7 +182,7 @@ def comparar_clasificador_2cls(X_train, y_train, models_to_train = None):
                                           Si es None, entrena todos los modelos definidos.
 
     Returns:
-        pd.DataFrame: DataFrame con las métricas (accuracy, balanced accuracy, Recall, F1, auc) para cada modelo.
+        pd.DataFrame: DataFrame con las métricas (Precision, Recall, F1) para cada modelo.
     """
 
     # Definir los modelos a entrenar (conjunto completo)
