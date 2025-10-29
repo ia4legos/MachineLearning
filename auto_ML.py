@@ -54,9 +54,9 @@ def preprocesar_datos(df, target):
 
     # Seleccionamos datos de trabajo si tenemos o no el target
     if target = "None":
-      dfs = df.drop(target, axis=1)
-    else:
       dfs = df.copy()
+    else:
+      dfs = df.drop(target, axis=1)
 
     # Identificar tipos de variables
     numeric_features = dfs.select_dtypes(include=np.number).columns
