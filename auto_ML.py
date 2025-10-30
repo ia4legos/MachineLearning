@@ -7,6 +7,7 @@ Original file is located at
     https://colab.research.google.com/drive/1ouWdD_hfb8hSlpNdJSdN2vI-KHk5Uwye
 """
 
+# Commented out IPython magic to ensure Python compatibility.
 import numpy as np          # importamos numpy como np
 import pandas as pd         # importamos pandas como pd
 import math
@@ -14,6 +15,13 @@ import random
 import warnings
 # Ignorar advertencias de convergencia para los modelos lineales
 warnings.filterwarnings('ignore', category=UserWarning, module='sklearn')
+
+# Cargamos módulos de análisis gráficos
+import matplotlib.pyplot as plt
+# %matplotlib inline
+import seaborn as sns
+sns.set_theme(style = 'whitegrid')
+# %config InlineBackend.figure_format = 'retina'
 
 # Preprocesado
 from sklearn.pipeline import Pipeline
