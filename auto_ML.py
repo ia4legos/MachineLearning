@@ -433,7 +433,7 @@ def matriz_confusion(modelo, xtest, ytest):
   plt.grid(False)
   plt.show()
 
-def validar_modelo(modelo, strain, stest, score, folds):
+def validar_modelo(modelo, xtrain, ytrain, score, folds):
   '''
   Función que proporciona un análisis de validación cruzada con respecto a un score de evaluación
 
