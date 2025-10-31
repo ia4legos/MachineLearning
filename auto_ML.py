@@ -488,7 +488,7 @@ def curva_aprendizaje(modelo, X, y, score, folds):
   plt.grid(True)
   plt.show()
 
-def select_best_k_features_rfe(modelo, X, y, k_values, score):
+def select_variables(modelo, X, y, k_values, score):
     """
     Selecciona las k mejores características utilizando la Eliminación Recursiva de Características (RFE)
     con validación cruzada y devuelve puntuaciones para cada k y las mejores características.
