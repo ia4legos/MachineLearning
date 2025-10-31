@@ -487,3 +487,55 @@ def curva_aprendizaje(modelo, X, y, score, folds):
   plt.title("Curva de aprendizaje")
   plt.grid(True)
   plt.show()
+
+def select_best_k_features_rfe(modelo, X, y, k_values, score):
+    """
+    Selecciona las k mejores características utilizando la Eliminación Recursiva de Características (RFE)
+    con validación cruzada y devuelve puntuaciones para cada k y las mejores características.
+
+    Args:
+        modelo: modelo de clasificación o regresión.
+        X (pd.DataFrame): matriz de inputs
+        y (pd.Series): vector de target
+        k_values (list): lista de valores de k donde debemos buscar la mejor combinación.
+        score (str): métrica de evaluación para la validación cruzada.
+
+    Returns:
+        tupla: una tupla que contien:
+            - pd.DataFrame: un dataframe con los valores de k y el score obtenido.
+            - list: una lista con los nomres de los inputs seleccionados
+            - int: El valor de k óptimo.
+            - float: El valor del score de validación cruzada para el mejor valor de k.
+    """
+    from sklearn.feature_selection import RFE
+    from sklearn.model_selection import cross_val_score
+
+    best_k = -1
+    best_score = -float('inf')
+    best_features = None
+    scores_list = []
+
+    for k in k_values:
+        # Nos aseguramos que el valor de k no exce el número de columnas de X
+        if k > X.shape[1]:
+            print(f"Cuidado: k={k} es mayor que el número de columnas de X ({X.shape[1]}).")
+            continue
+
+        selector = RFE(modelo, n_features_to_select=k)
+        X_new = selector.fit_transform(X, y)
+
+        # Evaluamos el comportamiento del modelo completo
+        scores = cross_val_score(modelo, X_new, y, cv =10, scoring = score)
+        mean_score = scores.mean()
+
+        scores_list.append({'k': k, 'score': mean_score})
+
+        if mean_score > best_score:
+            best_score = mean_score
+            best_k = k
+            # Get the names of the selected features
+            best_features = X.columns[selector.support_].tolist()
+
+    scores_df = pd.DataFrame(scores_list)
+
+    return scores_df, best_features, best_k, best_score
