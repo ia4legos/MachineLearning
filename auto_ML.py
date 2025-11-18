@@ -586,3 +586,21 @@ def podar_tree_clf(modelo,xtrain,ytrain,xtest,ytest):
 
   modelofinal = DecisionTreeClassifier(random_state=0,ccp_alpha=poda.iloc[pos,0])
   return(modelofinal)
+
+def plot_importancias(modelo):
+  '''
+  Función para obtener las importancias de los inputs de un modelo
+
+  Argumentos:
+  - modelo: modelo entrenado
+
+  Devuelve:
+  - Imprime matriz de importancia y devuleve el gráfico asociado
+  '''
+  matriz_importancia= pd.DataFrame([modelo.feature_importances_],
+             index = ["importancia"],
+             columns = modelo.feature_names_in_).T
+  matriz_importancia.sort_values(by='importancia',ascending=False,inplace=True)
+  print("Matriz de importancias")
+  print(matriz_importancia)
+  matriz_importancia.plot.barh();
