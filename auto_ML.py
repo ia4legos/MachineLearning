@@ -539,3 +539,50 @@ def select_variables(modelo, X, y, k_values, score):
     scores_df = pd.DataFrame(scores_list)
 
     return scores_df, best_features, best_k, best_score
+
+
+def podar_tree_clf(modelo,xtrain,ytrain,xtest,ytest):
+  '''
+  Función para llevar a cabo la poda de un árbol de decisión
+
+  Argumentos:
+    - modelo: modelo de árbol de decisión
+    - xtrain: muestras de entrenamiento
+    - ytrain: etiquetas de entrenamiento
+    - xtest: muestras de test
+    - ytest: etiquetas de test
+
+  Devuelve:
+    Imprimer el valor de alpha óptimo y devuelve el árbol podado
+  '''
+  from sklearn import tree
+  from sklearn.tree import DecisionTreeClassifier
+  
+  # Identificamos los valores alpha e impurezas
+  path = modelo.cost_complexity_pruning_path(xtrain, ytrain)
+  # extraer diferentes valores de alpha (y excluimos el del árbol trivial)
+  ccp_alphas = path.ccp_alphas[:-1]
+  # creamos un array donde introduciremos los árboles de decisión
+  clfs = []
+  # creamos un árbol de decisión por cada valor de alpha y lo guardamos
+  for ccp_alpha in ccp_alphas:
+    clf = DecisionTreeClassifier(random_state = 0, ccp_alpha = ccp_alpha)
+    clf.fit(xtrain, ytrain)
+    clfs.append(clf)
+  # Obtenemos la exactitud en las muestras train/test
+  train_scores = [clfsco.score(xtrain, ytrain) for clfsco in clfs]
+  test_scores = [clfsco.score(xtest, ytest) for clfsco in clfs]
+  # guardamos todos los resultados
+  poda = pd.DataFrame(np.stack([ccp_alphas,
+              np.array(train_scores),
+              np.array(test_scores)],axis=1),
+             columns= ["alpha", "score_train", "score_test"])
+  # identificamos la exactitud máxima en la muestra test
+  pos = poda.idxmax(axis=0).score_test
+  # Valores óptimos
+  print(f"Valor óptimo de alpha: {poda.iloc[pos,0]:.4f}")
+  print(f"Score muestra de entrenamiento: {poda.iloc[pos,1]:.4f}")
+  print(f"Score muestra de test: {poda.iloc[pos,2]:.4f}")
+
+  modelofinal = DecisionTreeClassifier(random_state=0,ccp_alpha=poda.iloc[pos,0])
+  return(modelofinal)
