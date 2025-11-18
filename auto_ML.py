@@ -584,5 +584,5 @@ def podar_tree_clf(modelo,xtrain,ytrain,xtest,ytest):
   print(f"Score muestra de entrenamiento: {poda.iloc[pos,1]:.4f}")
   print(f"Score muestra de test: {poda.iloc[pos,2]:.4f}")
 
-  modelofinal = DecisionTreeClassifier(random_state=0,ccp_alpha=poda.iloc[pos,0])
+  modelofinal = DecisionTreeClassifier(random_state=0,ccp_alpha=poda.iloc[pos,0]).fit(xtrain, ytrain)
   return(modelofinal)
