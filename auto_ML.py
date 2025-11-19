@@ -44,7 +44,7 @@ from lightgbm import LGBMClassifier, LGBMRegressor
 from xgboost import XGBClassifier, XGBRegressor
 
 # métricas de clasificación
-from sklearn.metrics import accuracy_score, balanced_accuracy_score, f1_score, recall_score
+from sklearn.metrics import accuracy_score, precision_score, balanced_accuracy_score, f1_score, recall_score
 from sklearn.metrics import roc_auc_score, roc_curve, classification_report, confusion_matrix, ConfusionMatrixDisplay
 
 # métricas de regresión
@@ -200,9 +200,6 @@ def comparar_clasificador_2cls(X_train, y_train, models_to_train = None):
     Returns:
         pd.DataFrame: DataFrame con las métricas (Precision, Recall, F1) para cada modelo.
     """
-
-    from sklearn.metrics import accuracy_score, balanced_accuracy_score, f1_score, recall_score
-
     
     # Definir los modelos a entrenar (conjunto completo)
     all_classifiers = {
@@ -243,17 +240,15 @@ def comparar_clasificador_2cls(X_train, y_train, models_to_train = None):
             acc = accuracy_score(y_train, y_pred)
             balanced_acc = balanced_accuracy_score(y_train, y_pred)
             # Usar average='weighted' para métricas en problemas multiclase
-            #precision = precision_score(y_train, y_pred, average='weighted', zero_division=0)
+            precision = precision_score(y_train, y_pred, average='weighted', zero_division=0)
             recall = recall_score(y_train, y_pred, average='weighted', zero_division=0)
             f1 = f1_score(y_train, y_pred, average='weighted', zero_division=0)
             auc = roc_auc_score(y_train, y_pred)
-            #results.append({'Algorithm': name, 'Accuracy': acc, 'Balanced_Accuracy': balanced_acc, 'Precision': precision, 'Recall': recall, 'F1': f1, 'AUC': auc})
             results.append({'Algorithm': name, 'Accuracy': acc, 'Balanced_Accuracy': balanced_acc, 'Precision': precision, 'Recall': recall, 'F1': f1, 'AUC': auc})
 
         except Exception as e:
             print(f"Error entrenando {name}: {e}")
-            results.append({'Algorithm': name, 'Accuracy': None, 'Balanced_Accuracy': None, 'Recall': None, 'F1-score': None,})
-            #results.append({'Algorithm': name, 'Accuracy': None, 'Balanced_Accuracy': None, 'Precision': precision, 'Recall': None, 'F1-score': None,})
+            results.append({'Algorithm': name, 'Accuracy': None, 'Balanced_Accuracy': None, 'Precision': precision, 'Recall': None, 'F1-score': None,})
 
 
     return pd.DataFrame(results)
