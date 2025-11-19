@@ -64,6 +64,9 @@ def preprocesar_datos(df, target):
         pd.DataFrame: El DataFrame preprocesado.
     """
 
+    
+
+    
     # Seleccionamos datos de trabajo si tenemos o no el target
     if target == "None":
       dfs = df.copy()
@@ -161,7 +164,8 @@ def split_sample(df, target, size, semilla):
   - size: porcentaje de la muestra de test
   - semilla: semilla aleatoria para la división y reproducibilidad
   """
-
+  from sklearn.model_selection import train_test_split
+    
   X = df.drop(target,axis=1)
   y = df[target]
 
@@ -197,6 +201,9 @@ def comparar_clasificador_2cls(X_train, y_train, models_to_train = None):
         pd.DataFrame: DataFrame con las métricas (Precision, Recall, F1) para cada modelo.
     """
 
+    from sklearn.metrics import accuracy_score, balanced_accuracy_score, f1_score, recall_score
+
+    
     # Definir los modelos a entrenar (conjunto completo)
     all_classifiers = {
         "lr": LogisticRegression(random_state=123,solver="saga"),
