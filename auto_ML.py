@@ -243,15 +243,17 @@ def comparar_clasificador_2cls(X_train, y_train, models_to_train = None):
             acc = accuracy_score(y_train, y_pred)
             balanced_acc = balanced_accuracy_score(y_train, y_pred)
             # Usar average='weighted' para métricas en problemas multiclase
-            precision = precision_score(y_train, y_pred, average='weighted', zero_division=0)
+            #precision = precision_score(y_train, y_pred, average='weighted', zero_division=0)
             recall = recall_score(y_train, y_pred, average='weighted', zero_division=0)
             f1 = f1_score(y_train, y_pred, average='weighted', zero_division=0)
             auc = roc_auc_score(y_train, y_pred)
+            #results.append({'Algorithm': name, 'Accuracy': acc, 'Balanced_Accuracy': balanced_acc, 'Precision': precision, 'Recall': recall, 'F1': f1, 'AUC': auc})
             results.append({'Algorithm': name, 'Accuracy': acc, 'Balanced_Accuracy': balanced_acc, 'Precision': precision, 'Recall': recall, 'F1': f1, 'AUC': auc})
 
         except Exception as e:
             print(f"Error entrenando {name}: {e}")
-            results.append({'Algorithm': name, 'Accuracy': None, 'Balanced_Accuracy': None, 'Precision': None, 'Recall': None, 'F1-score': None,})
+            results.append({'Algorithm': name, 'Accuracy': None, 'Balanced_Accuracy': None, 'Recall': None, 'F1-score': None,})
+            #results.append({'Algorithm': name, 'Accuracy': None, 'Balanced_Accuracy': None, 'Precision': precision, 'Recall': None, 'F1-score': None,})
 
 
     return pd.DataFrame(results)
