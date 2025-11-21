@@ -339,13 +339,14 @@ def comparar_clasificador_multicls(X_train, y_train, models_to_train = None):
 
 # Función para comparar diferentes modelos de regresión
 
-def comparar_regresores(X_train, y_train, models_to_train=None):
+def comparar_regresores(strain, target, sizeval, models_to_train=None):
     """
     Entrena varios modelos de regresión y devuelve sus métricas de rendimiento.
 
     Args:
-        X_train (pd.DataFrame): Matriz de características de entrenamiento.
-        y_train (pd.Series): Vector de target de entrenamiento.
+        strain (pd.DataFrame): Conjunto de entrenamiento.
+        target (str): Nombre de la columna objetivo.
+        sizeval: porcentaje del conjunto de datos que se usa para validación.
         models_to_train (list, optional): Lista de nombres de modelos a entrenar.
                                           Si es None, entrena todos los modelos definidos.
 
@@ -376,6 +377,17 @@ def comparar_regresores(X_train, y_train, models_to_train=None):
         if len(regressors) != len(models_to_train):
             print("Advertencia: Algunos nombres de modelos en la lista proporcionada no son válidos.")
 
+    # Dividimos el conjunto entre entrenamiento y validación
+    # The 'split_sample' function expects the full DataFrame and the target column name as a string.
+    strain_df, sval_df = split_sample(strain, target, 1-sizeval, 123)
+
+    # Asignación
+    X_train = strain_df.drop(target, axis=1)
+    y_train = strain_df[target]
+    X_val = sval_df.drop(target, axis=1)
+    y_val = sval_df[target]
+
+    # Entrenamiento y almacenamienyo de métricas
     results = []
 
     for name, reg in regressors.items():
@@ -385,14 +397,14 @@ def comparar_regresores(X_train, y_train, models_to_train=None):
             reg.fit(X_train, y_train)
 
             # Predecir en los datos de entrenamiento para calcular las métricas
-            y_pred = reg.predict(X_train)
+            y_pred = reg.predict(X_val)
 
             # Calcular métricas
-            mse = mean_squared_error(y_train, y_pred)
+            mse = mean_squared_error(y_val, y_pred)
             rmse = np.sqrt(mse)
-            mae = mean_absolute_error(y_train, y_pred)
+            mae = mean_absolute_error(y_val, y_pred)
             # Manejar el caso de división por cero en MAPE si hay valores de y_train igual a cero
-            mape = mean_absolute_percentage_error(y_train, y_pred) if not (y_train == 0).any() else np.nan
+            mape = mean_absolute_percentage_error(y_val, y_pred) if not (y_val == 0).any() else np.nan
 
             results.append({'Algorithm': name, 'MSE': mse, 'RMSE': rmse, 'MAE': mae, 'MAPE': mape})
 
