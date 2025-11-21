@@ -62,11 +62,7 @@ def preprocesar_datos(df, target):
 
     Returns:
         pd.DataFrame: El DataFrame preprocesado.
-    """
-
-    
-
-    
+    """   
     # Seleccionamos datos de trabajo si tenemos o no el target
     if target == "None":
       dfs = df.copy()
@@ -187,20 +183,21 @@ def split_sample(df, target, size, semilla):
 
 # Función para comparar diferentes modelos de clasificación binaria
 
-def comparar_clasificador_2cls(X_train, y_train, models_to_train = None):
+def comparar_clasificador_2cls(strain, target, sizeval, models_to_train = None):
     """
     Entrena varios modelos de clasificación y devuelve sus métricas de rendimiento.
 
     Args:
-        X_train (pd.DataFrame): Matriz de características de entrenamiento.
-        y_train (pd.Series): Vector de target de entrenamiento.
+        strain (pd.DataFrame): Conjunto de entrenamiento.
+        target (str): Nombre de la columna objetivo.
+        sizeval: porcentaje del conjunto de datos que se usa para validación.
         models_to_train (list, optional): Lista de nombres de modelos a entrenar.
                                           Si es None, entrena todos los modelos definidos.
 
     Returns:
         pd.DataFrame: DataFrame con las métricas (Precision, Recall, F1) para cada modelo.
     """
-    
+
     # Definir los modelos a entrenar (conjunto completo)
     all_classifiers = {
         "lr": LogisticRegression(random_state=123,solver="saga"),
@@ -227,6 +224,16 @@ def comparar_clasificador_2cls(X_train, y_train, models_to_train = None):
         if len(classifiers) != len(models_to_train):
             print("Advertencia: Algunos nombres de modelos en la lista proporcionada no son válidos.")
 
+    # Dividimos el conjunto entre entrenamiento y validación
+    # The 'split_sample' function expects the full DataFrame and the target column name as a string.
+    strain_df, sval_df = split_sample(strain, target, 1-sizeval, 123)
+
+    # Asignación
+    X_train = strain_df.drop(target, axis=1)
+    y_train = strain_df[target]
+    X_val = sval_df.drop(target, axis=1)
+    y_val = sval_df[target]
+
     # Entrenamiento y almacenamienyo de métricas
     results = []
     for name, clf in classifiers.items():
@@ -235,21 +242,20 @@ def comparar_clasificador_2cls(X_train, y_train, models_to_train = None):
             # Entrenar el modelo
             clf.fit(X_train, y_train)
             # Predecir en los datos de entrenamiento para calcular las métricas
-            y_pred = clf.predict(X_train)
+            y_pred = clf.predict(X_val)
             # Calcular métricas
-            acc = accuracy_score(y_train, y_pred)
-            balanced_acc = balanced_accuracy_score(y_train, y_pred)
+            acc = accuracy_score(y_val, y_pred)
+            balanced_acc = balanced_accuracy_score(y_val, y_pred)
             # Usar average='weighted' para métricas en problemas multiclase
-            precision = precision_score(y_train, y_pred, average='weighted', zero_division=0)
-            recall = recall_score(y_train, y_pred, average='weighted', zero_division=0)
-            f1 = f1_score(y_train, y_pred, average='weighted', zero_division=0)
-            auc = roc_auc_score(y_train, y_pred)
+            precision = precision_score(y_val, y_pred, average='weighted', zero_division=0)
+            recall = recall_score(y_val, y_pred, average='weighted', zero_division=0)
+            f1 = f1_score(y_val, y_pred, average='weighted', zero_division=0)
+            auc = roc_auc_score(y_val, y_pred)
             results.append({'Algorithm': name, 'Accuracy': acc, 'Balanced_Accuracy': balanced_acc, 'Precision': precision, 'Recall': recall, 'F1': f1, 'AUC': auc})
 
         except Exception as e:
             print(f"Error entrenando {name}: {e}")
             results.append({'Algorithm': name, 'Accuracy': None, 'Balanced_Accuracy': None, 'Precision': precision, 'Recall': None, 'F1-score': None,})
-
 
     return pd.DataFrame(results)
 
@@ -296,31 +302,38 @@ def comparar_clasificador_multicls(X_train, y_train, models_to_train = None):
         if len(classifiers) != len(models_to_train):
             print("Advertencia: Algunos nombres de modelos en la lista proporcionada no son válidos.")
 
-    results = []
+    # Dividimos el conjunto entre entrenamiento y validación
+    # The 'split_sample' function expects the full DataFrame and the target column name as a string.
+    strain_df, sval_df = split_sample(strain, target, 1-sizeval, 123)
 
+    # Asignación
+    X_train = strain_df.drop(target, axis=1)
+    y_train = strain_df[target]
+    X_val = sval_df.drop(target, axis=1)
+    y_val = sval_df[target]
+
+    # Entrenamiento y almacenamienyo de métricas
+    results = []
     for name, clf in classifiers.items():
         print(f"Entrenando {name}...")
         try:
             # Entrenar el modelo
             clf.fit(X_train, y_train)
-
             # Predecir en los datos de entrenamiento para calcular las métricas
-            y_pred = clf.predict(X_train)
-
+            y_pred = clf.predict(X_val)
             # Calcular métricas
-            acc = accuracy_score(y_train, y_pred)
-            balanced_acc = balanced_accuracy_score(y_train, y_pred)
+            acc = accuracy_score(y_val, y_pred)
+            balanced_acc = balanced_accuracy_score(y_val, y_pred)
             # Usar average='weighted' para métricas en problemas multiclase
-            precision = precision_score(y_train, y_pred, average='weighted', zero_division=0)
-            recall = recall_score(y_train, y_pred, average='weighted', zero_division=0)
-            f1 = f1_score(y_train, y_pred, average='weighted', zero_division=0)
-
-            results.append({'Algorithm': name, 'Accuracy': acc, 'Balanced_Accuracy': balanced_acc, 'Precision': precision, 'Recall': recall, 'F1-score': f1})
+            precision = precision_score(y_val, y_pred, average='weighted', zero_division=0)
+            recall = recall_score(y_val, y_pred, average='weighted', zero_division=0)
+            f1 = f1_score(y_val, y_pred, average='weighted', zero_division=0)
+            auc = roc_auc_score(y_val, y_pred)
+            results.append({'Algorithm': name, 'Accuracy': acc, 'Balanced_Accuracy': balanced_acc, 'Precision': precision, 'Recall': recall, 'F1': f1, 'AUC': auc})
 
         except Exception as e:
             print(f"Error entrenando {name}: {e}")
-            results.append({'Algorithm': name, 'Accuracy': None, 'Balanced_Accuracy': None, 'Precision': None, 'Recall': None, 'F1-score': None,})
-
+            results.append({'Algorithm': name, 'Accuracy': None, 'Balanced_Accuracy': None, 'Precision': precision, 'Recall': None, 'F1-score': None,})
 
     return pd.DataFrame(results)
 
