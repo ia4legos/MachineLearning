@@ -276,8 +276,8 @@ def comparar_clasificador_multicls(strain, target, sizeval, semilla, models_to_t
     """
 
     # Split data into features (X) and target (y)
-    X = df.drop(columns=[target])
-    y = df[target]
+    X = strain.drop(columns=[target])
+    y = strain[target]
     # Stratified split for training and validation sets
     X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=sizeval, random_state=semilla, stratify=y)
   
