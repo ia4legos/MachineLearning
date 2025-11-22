@@ -150,7 +150,7 @@ def preprocesar_datos(df, target):
 
 # Función para muestreo estratificado por target
 
-def split_sample(df, target, size, stratify = True, semilla):
+def split_sample(df, target, size, stratify = True, semilla=123):
   """
   Función para obtener la división de muestras de entrenamiento y test estratificando por un factor.
 
