@@ -224,9 +224,7 @@ def comparar_clasificador_2cls(strain, target, sizeval, models_to_train = None):
             print("Advertencia: Algunos nombres de modelos en la lista proporcionada no son válidos.")
 
     # Dividimos el conjunto entre entrenamiento y validación
-    # The 'split_sample' function expects the full DataFrame and the target column name as a string.
-    strain_df, sval_df = split_sample(strain, target, 1-sizeval, 123)
-
+    strain_df, sval_df = split_sample(strain, target, 1-sizeval, stratify = True, 123)
     # Asignación
     X_train = strain_df.drop(target, axis=1)
     y_train = strain_df[target]
