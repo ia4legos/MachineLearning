@@ -150,7 +150,7 @@ def preprocesar_datos(df, target):
 
 # Función para muestreo estratificado por target
 
-def split_sample(df, target, size, semilla, estratificar = True):
+def split_sample(df, target, size, semilla, estratificar):
   """
   Función para obtener la división de muestras de entrenamiento y test estratificando por un factor.
 
@@ -159,7 +159,7 @@ def split_sample(df, target, size, semilla, estratificar = True):
   - target: target por el que estratificar
   - size: porcentaje de la muestra de test
   - semilla: semilla aleatoria para la división y reproducibilidad
-  - estratificar: si debemos estratificar por el target. Por fefecto el valor es True
+  - estratificar: boleano que indica si debemos estratificar por el target. 
   """
   from sklearn.model_selection import train_test_split
     
@@ -225,7 +225,7 @@ def comparar_clasificador_2cls(strain, target, sizeval, semilla, models_to_train
             print("Advertencia: Algunos nombres de modelos en la lista proporcionada no son válidos.")
 
     # Dividimos el conjunto entre entrenamiento y validación
-    strain_df, sval_df = split_sample(strain, target, 1-sizeval, semilla, stratify = True)
+    strain_df, sval_df = split_sample(strain, target, 1-sizeval, semilla, True)
     # Asignación
     X_train = strain_df.drop(target, axis=1)
     y_train = strain_df[target]
@@ -303,7 +303,7 @@ def comparar_clasificador_multicls(strain, target, sizeval, semilla, models_to_t
             print("Advertencia: Algunos nombres de modelos en la lista proporcionada no son válidos.")
 
     # Dividimos el conjunto entre entrenamiento y validación
-    strain_df, sval_df = split_sample(strain, target, 1-sizeval, semilla, stratify = True)
+    strain_df, sval_df = split_sample(strain, target, 1-sizeval, semilla, True)
     # Asignación
     X_train = strain_df.drop(target, axis=1)
     y_train = strain_df[target]
@@ -376,7 +376,7 @@ def comparar_regresores(strain, target, sizeval, semilla, models_to_train=None):
             print("Advertencia: Algunos nombres de modelos en la lista proporcionada no son válidos.")
 
     # Dividimos el conjunto entre entrenamiento y validación
-    strain_df, sval_df = split_sample(strain, target, 1-sizeval, semilla, stratify = False)
+    strain_df, sval_df = split_sample(strain, target, 1-sizeval, semilla, False)
     # Asignación
     X_train = strain_df.drop(target, axis=1)
     y_train = strain_df[target]
