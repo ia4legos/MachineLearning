@@ -150,7 +150,7 @@ def preprocesar_datos(df, target):
 
 # Función para muestreo estratificado por target
 
-def split_sample(df, target, size, semilla):
+def split_sample(df, target, size, stratify = True, semilla):
   """
   Función para obtener la división de muestras de entrenamiento y test estratificando por un factor.
 
@@ -158,6 +158,7 @@ def split_sample(df, target, size, semilla):
   - df: dataframe de datos completo
   - target: target por el que estratificar
   - size: porcentaje de la muestra de test
+  - stratify: si debemos estratificar por el target. Por fefecto el valor es True
   - semilla: semilla aleatoria para la división y reproducibilidad
   """
   from sklearn.model_selection import train_test_split
@@ -165,8 +166,7 @@ def split_sample(df, target, size, semilla):
   X = df.drop(target,axis=1)
   y = df[target]
 
-  # Verificar si el target es categórico (object o category)
-  if df[target].dtype == 'object' or df[target].dtype.name == 'category' or df[target].dtype.name == 'bolean':
+  if stratify == True
       print(f"Estratificando por la variable objetivo '{target}' (categórica).")
       # División de muestras con estratificación
       X_train, X_test, y_train, y_test= train_test_split(X, y, test_size=size, random_state=semilla, stratify=y)
@@ -178,7 +178,6 @@ def split_sample(df, target, size, semilla):
   # Dataframes de entrenamiento y test
   strain = pd.concat([X_train,y_train],axis=1).reset_index(drop=True)
   stest = pd.concat([X_test,y_test],axis=1).reset_index(drop=True)
-
   return(strain,stest)
 
 # Función para comparar diferentes modelos de clasificación binaria
