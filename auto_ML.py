@@ -275,6 +275,12 @@ def comparar_clasificador_multicls(strain, target, sizeval, semilla, models_to_t
         pd.DataFrame: DataFrame con las métricas (Accuracy, Balanced Accuracy, Precision, Recall, F1) para cada modelo.
     """
 
+    # Split data into features (X) and target (y)
+    X = df.drop(columns=[target])
+    y = df[target]
+    # Stratified split for training and validation sets
+    X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=sizeval, random_state=semilla, stratify=y)
+  
     # Definir los modelos a entrenar (conjunto completo)
 
     all_classifiers = {
@@ -294,46 +300,47 @@ def comparar_clasificador_multicls(strain, target, sizeval, semilla, models_to_t
         "xgboost": XGBClassifier(random_state=semilla, eval_metric='logloss')
     }
 
-    # Seleccionar los modelos a entrenar según la lista proporcionada
     if models_to_train is None:
-        classifiers = all_classifiers
+        models = all_models
     else:
-        classifiers = {name: all_classifiers[name] for name in models_to_train if name in all_classifiers}
-        if len(classifiers) != len(models_to_train):
-            print("Advertencia: Algunos nombres de modelos en la lista proporcionada no son válidos.")
+        models = {name: all_models[name] for name in models_to_train if name in all_models}
 
-    # Dividimos el conjunto entre entrenamiento y validación
-    strain_df, sval_df = split_sample(strain, target, 1-sizeval, semilla, True)
-    # Asignación
-    X_train = strain_df.drop(target, axis=1)
-    y_train = strain_df[target]
-    X_val = sval_df.drop(target, axis=1)
-    y_val = sval_df[target]
-
-    # Entrenamiento y almacenamienyo de métricas
     results = []
-    for name, clf in classifiers.items():
+
+    for name, model in models.items():
         print(f"Entrenando {name}...")
         try:
-            # Entrenar el modelo
-            clf.fit(X_train, y_train)
-            # Predecir en los datos de entrenamiento para calcular las métricas
-            y_pred = clf.predict(X_val)
-            # Calcular métricas
-            acc = accuracy_score(y_val, y_pred)
-            balanced_acc = balanced_accuracy_score(y_val, y_pred)
-            # Usar average='weighted' para métricas en problemas multiclase
+            model.fit(X_train, y_train)
+            y_pred = model.predict(X_val)
+
+            # Calculate metrics
+            accuracy = accuracy_score(y_val, y_pred)
+            balanced_accuracy = balanced_accuracy_score(y_val, y_pred)
             precision = precision_score(y_val, y_pred, average='weighted', zero_division=0)
             recall = recall_score(y_val, y_pred, average='weighted', zero_division=0)
             f1 = f1_score(y_val, y_pred, average='weighted', zero_division=0)
-            auc = roc_auc_score(y_val, y_pred)
-            results.append({'Algorithm': name, 'Accuracy': acc, 'Balanced_Accuracy': balanced_acc, 'Precision': precision, 'Recall': recall, 'F1': f1, 'AUC': auc})
 
+            results.append({
+                'Algorithm': name,
+                'Accuracy': accuracy,
+                'Balanced_Accuracy': balanced_accuracy,
+                'Precision': precision,
+                'Recall': recall,
+                'F1-score': f1
+            })
         except Exception as e:
             print(f"Error entrenando {name}: {e}")
-            results.append({'Algorithm': name, 'Accuracy': None, 'Balanced_Accuracy': None, 'Precision': precision, 'Recall': None, 'F1-score': None,})
+            results.append({
+                'Algorithm': name,
+                'Accuracy': None,
+                'Balanced_Accuracy': None,
+                'Precision': None,
+                'Recall': None,
+                'F1-score': None
+            })
 
     return pd.DataFrame(results)
+
 
 # Función para comparar diferentes modelos de regresión
 
