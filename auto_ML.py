@@ -150,7 +150,7 @@ def preprocesar_datos(df, target):
 
 # Función para muestreo estratificado por target
 
-def split_sample(df, target, size, stratify = True, semilla=123):
+def split_sample(df, target, size, semilla, estratificar = True):
   """
   Función para obtener la división de muestras de entrenamiento y test estratificando por un factor.
 
@@ -158,15 +158,15 @@ def split_sample(df, target, size, stratify = True, semilla=123):
   - df: dataframe de datos completo
   - target: target por el que estratificar
   - size: porcentaje de la muestra de test
-  - stratify: si debemos estratificar por el target. Por fefecto el valor es True
   - semilla: semilla aleatoria para la división y reproducibilidad
+  - estratificar: si debemos estratificar por el target. Por fefecto el valor es True
   """
   from sklearn.model_selection import train_test_split
     
   X = df.drop(target,axis=1)
   y = df[target]
 
-  if stratify == True
+  if estratificar == True
       print(f"Estratificando por la variable objetivo '{target}' (categórica).")
       # División de muestras con estratificación
       X_train, X_test, y_train, y_test= train_test_split(X, y, test_size=size, random_state=semilla, stratify=y)
@@ -182,7 +182,7 @@ def split_sample(df, target, size, stratify = True, semilla=123):
 
 # Función para comparar diferentes modelos de clasificación binaria
 
-def comparar_clasificador_2cls(strain, target, sizeval, models_to_train = None):
+def comparar_clasificador_2cls(strain, target, sizeval, semilla, models_to_train = None):
     """
     Entrena varios modelos de clasificación y devuelve sus métricas de rendimiento.
 
@@ -190,6 +190,7 @@ def comparar_clasificador_2cls(strain, target, sizeval, models_to_train = None):
         strain (pd.DataFrame): Conjunto de entrenamiento.
         target (str): Nombre de la columna objetivo.
         sizeval: porcentaje del conjunto de datos que se usa para validación.
+        semilla: semilla de aleatorización
         models_to_train (list, optional): Lista de nombres de modelos a entrenar.
                                           Si es None, entrena todos los modelos definidos.
 
@@ -199,20 +200,20 @@ def comparar_clasificador_2cls(strain, target, sizeval, models_to_train = None):
 
     # Definir los modelos a entrenar (conjunto completo)
     all_classifiers = {
-        "lr": LogisticRegression(random_state=123,solver="saga"),
-        "ridge": RidgeClassifier(random_state=123),
+        "lr": LogisticRegression(random_state=semilla,solver="saga"),
+        "ridge": RidgeClassifier(random_state=semilla),
         "lda": LinearDiscriminantAnalysis(),
         "qda": QuadraticDiscriminantAnalysis(),
         "nb": GaussianNB(),
         "knn": KNeighborsClassifier(),
-        "svc": SVC(kernel='linear', random_state=123),
-        "rbf": SVC(kernel='rbf', random_state=123),
-        "dt": DecisionTreeClassifier(random_state=123),
-        "rf": RandomForestClassifier(random_state=123),
-        "ada": AdaBoostClassifier(random_state=123),
-        "gbc": GradientBoostingClassifier(random_state=123),
-        "lightgbm": LGBMClassifier(random_state=123, verbose=-1), #verbose=-1 para evitar imprimir info de entrenamiento
-        "xgboost": XGBClassifier(random_state=123, eval_metric='logloss') # use_label_encoder=False y eval_metric para evitar warnings
+        "svc": SVC(kernel='linear', random_state=semilla),
+        "rbf": SVC(kernel='rbf', random_state=semilla),
+        "dt": DecisionTreeClassifier(random_state=semilla),
+        "rf": RandomForestClassifier(random_state=semilla),
+        "ada": AdaBoostClassifier(random_state=semilla),
+        "gbc": GradientBoostingClassifier(random_state=semilla),
+        "lightgbm": LGBMClassifier(random_state=semilla, verbose=-1), #verbose=-1 para evitar imprimir info de entrenamiento
+        "xgboost": XGBClassifier(random_state=semilla, eval_metric='logloss') # use_label_encoder=False y eval_metric para evitar warnings
     }
 
     # Seleccionar los modelos a entrenar según la lista proporcionada
@@ -224,7 +225,7 @@ def comparar_clasificador_2cls(strain, target, sizeval, models_to_train = None):
             print("Advertencia: Algunos nombres de modelos en la lista proporcionada no son válidos.")
 
     # Dividimos el conjunto entre entrenamiento y validación
-    strain_df, sval_df = split_sample(strain, target, 1-sizeval, stratify = True, 123)
+    strain_df, sval_df = split_sample(strain, target, 1-sizeval, semilla, stratify = True)
     # Asignación
     X_train = strain_df.drop(target, axis=1)
     y_train = strain_df[target]
@@ -258,13 +259,15 @@ def comparar_clasificador_2cls(strain, target, sizeval, models_to_train = None):
 
 # Función para comparar diferentes modelos de clasificación multinomial
 
-def comparar_clasificador_multicls(X_train, y_train, models_to_train = None):
+def comparar_clasificador_multicls(strain, target, sizeval, semilla, models_to_train = None):
     """
     Entrena varios modelos de clasificación multiclase y devuelve sus métricas de rendimiento.
 
     Args:
-        X_train (pd.DataFrame): Matriz de características de entrenamiento.
-        y_train (pd.Series): Vector de target de entrenamiento (etiquetas numéricas).
+        strain (pd.DataFrame): Conjunto de entrenamiento.
+        target (str): Nombre de la columna objetivo.
+        sizeval: porcentaje del conjunto de datos que se usa para validación.
+        semilla: semilla de aleatorización
         models_to_train (list, optional): Lista de nombres de modelos a entrenar.
                                           Si es None, entrena todos los modelos definidos.
 
@@ -275,20 +278,20 @@ def comparar_clasificador_multicls(X_train, y_train, models_to_train = None):
     # Definir los modelos a entrenar (conjunto completo)
 
     all_classifiers = {
-        "lr": LogisticRegression(random_state=123, solver='liblinear'), # Usar solver compatible con multiclase
-        "ridge": RidgeClassifier(random_state=123),
+        "lr": LogisticRegression(random_state=semilla, solver='liblinear'), # Usar solver compatible con multiclase
+        "ridge": RidgeClassifier(random_state=semilla),
         "lda": LinearDiscriminantAnalysis(),
         "qda": QuadraticDiscriminantAnalysis(),
         "nb": GaussianNB(),
         "knn": KNeighborsClassifier(),
-        "svc": SVC(kernel='linear', random_state=123),
-        "rbf": SVC(kernel='rbf', random_state=123),
-        "dt": DecisionTreeClassifier(random_state=123),
-        "rf": RandomForestClassifier(random_state=123),
-        "ada": AdaBoostClassifier(random_state=123),
-        "gbc": GradientBoostingClassifier(random_state=123),
-        "lightgbm": LGBMClassifier(random_state=123, verbose=-1),
-        "xgboost": XGBClassifier(random_state=123, eval_metric='logloss')
+        "svc": SVC(kernel='linear', random_state=semilla),
+        "rbf": SVC(kernel='rbf', random_state=semilla),
+        "dt": DecisionTreeClassifier(random_state=semilla),
+        "rf": RandomForestClassifier(random_state=semilla),
+        "ada": AdaBoostClassifier(random_state=semilla),
+        "gbc": GradientBoostingClassifier(random_state=semilla),
+        "lightgbm": LGBMClassifier(random_state=semilla, verbose=-1),
+        "xgboost": XGBClassifier(random_state=semilla, eval_metric='logloss')
     }
 
     # Seleccionar los modelos a entrenar según la lista proporcionada
@@ -300,7 +303,7 @@ def comparar_clasificador_multicls(X_train, y_train, models_to_train = None):
             print("Advertencia: Algunos nombres de modelos en la lista proporcionada no son válidos.")
 
     # Dividimos el conjunto entre entrenamiento y validación
-    strain_df, sval_df = split_sample(strain, target, 1-sizeval, stratify = True, 123)
+    strain_df, sval_df = split_sample(strain, target, 1-sizeval, semilla, stratify = True)
     # Asignación
     X_train = strain_df.drop(target, axis=1)
     y_train = strain_df[target]
@@ -334,7 +337,7 @@ def comparar_clasificador_multicls(X_train, y_train, models_to_train = None):
 
 # Función para comparar diferentes modelos de regresión
 
-def comparar_regresores(strain, target, sizeval, models_to_train=None):
+def comparar_regresores(strain, target, sizeval, semilla, models_to_train=None):
     """
     Entrena varios modelos de regresión y devuelve sus métricas de rendimiento.
 
@@ -352,16 +355,16 @@ def comparar_regresores(strain, target, sizeval, models_to_train=None):
     # Definir los modelos a entrenar (conjunto completo)
     all_regressors = {
         "lr": LinearRegression(),
-        "lasso": Lasso(random_state=123),
-        "ridge": Ridge(random_state=123),
+        "lasso": Lasso(random_state=semilla),
+        "ridge": Ridge(random_state=semilla),
         "knn": KNeighborsRegressor(),
         "svr": SVR(),
-        "dt": DecisionTreeRegressor(random_state=123),
-        "rf": RandomForestRegressor(random_state=123),
-        "ada": AdaBoostRegressor(random_state=123),
-        "gbr": GradientBoostingRegressor(random_state=123),
-        "lightgbm": LGBMRegressor(random_state=123, verbose=-1), #verbose=-1 para evitar imprimir info de entrenamiento
-        "xgboost": XGBRegressor(random_state=123, use_label_encoder=False, eval_metric='rmse') # use_label_encoder=False y eval_metric para evitar warnings
+        "dt": DecisionTreeRegressor(random_state=semilla),
+        "rf": RandomForestRegressor(random_state=semilla),
+        "ada": AdaBoostRegressor(random_state=semilla),
+        "gbr": GradientBoostingRegressor(random_state=semilla),
+        "lightgbm": LGBMRegressor(random_state=semilla, verbose=-1), #verbose=-1 para evitar imprimir info de entrenamiento
+        "xgboost": XGBRegressor(random_state=semilla, use_label_encoder=False, eval_metric='rmse') # use_label_encoder=False y eval_metric para evitar warnings
     }
 
     # Seleccionar los modelos a entrenar según la lista proporcionada
@@ -373,7 +376,7 @@ def comparar_regresores(strain, target, sizeval, models_to_train=None):
             print("Advertencia: Algunos nombres de modelos en la lista proporcionada no son válidos.")
 
     # Dividimos el conjunto entre entrenamiento y validación
-    strain_df, sval_df = split_sample(strain, target, 1-sizeval, stratify = False, 123)
+    strain_df, sval_df = split_sample(strain, target, 1-sizeval, semilla, stratify = False)
     # Asignación
     X_train = strain_df.drop(target, axis=1)
     y_train = strain_df[target]
