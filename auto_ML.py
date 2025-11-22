@@ -359,6 +359,12 @@ def comparar_regresores(strain, target, sizeval, semilla, models_to_train=None):
         pd.DataFrame: DataFrame con las métricas (MSE, RMSE, MAE, MAPE) para cada modelo.
     """
 
+    # Split data into features (X) and target (y)
+    X = strain.drop(columns=[target])
+    y = strain[target]
+    # Stratified split for training and validation sets
+    X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=sizeval, random_state=semilla, stratify=y)
+    
     # Definir los modelos a entrenar (conjunto completo)
     all_regressors = {
         "lr": LinearRegression(),
@@ -381,14 +387,6 @@ def comparar_regresores(strain, target, sizeval, semilla, models_to_train=None):
         regressors = {name: all_regressors[name] for name in models_to_train if name in all_regressors}
         if len(regressors) != len(models_to_train):
             print("Advertencia: Algunos nombres de modelos en la lista proporcionada no son válidos.")
-
-    # Dividimos el conjunto entre entrenamiento y validación
-    strain_df, sval_df = split_sample(strain, target, 1-sizeval, semilla, False)
-    # Asignación
-    X_train = strain_df.drop(target, axis=1)
-    y_train = strain_df[target]
-    X_val = sval_df.drop(target, axis=1)
-    y_val = sval_df[target]
 
     # Entrenamiento y almacenamienyo de métricas
     results = []
