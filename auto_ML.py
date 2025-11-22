@@ -166,7 +166,7 @@ def split_sample(df, target, size, semilla, estratificar = True):
   X = df.drop(target,axis=1)
   y = df[target]
 
-  if estratificar == True
+  if estratificar == True:
       print(f"Estratificando por la variable objetivo '{target}' (categórica).")
       # División de muestras con estratificación
       X_train, X_test, y_train, y_test= train_test_split(X, y, test_size=size, random_state=semilla, stratify=y)
