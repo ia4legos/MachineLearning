@@ -283,7 +283,7 @@ def comparar_clasificador_multicls(strain, target, sizeval, semilla, models_to_t
   
     # Definir los modelos a entrenar (conjunto completo)
 
-    all_classifiers = {
+    all_models = {
         "lr": LogisticRegression(random_state=semilla, solver='liblinear'), # Usar solver compatible con multiclase
         "ridge": RidgeClassifier(random_state=semilla),
         "lda": LinearDiscriminantAnalysis(),
