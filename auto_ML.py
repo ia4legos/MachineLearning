@@ -471,18 +471,29 @@ def validar_modelo(modelo, xtrain, ytrain, score, folds):
   - modelo: modelo entrenado
   - xtrain: inputs de entrenamiento
   - ytrain: target de entrenamiento
-  - score: métrica de evaluación ('accuracy','recall','f1')
+  - score: métrica de evaluación 
   - folds: número de folds de validación cruzada
 
   Return:
   - tabla con el análisis de validación cruzada
   '''
 
-  from sklearn.model_selection import cross_val_score, learning_curve
+  from sklearn.model_selection import cross_val_score
+  from sklearn.metrics import make_scorer, precision_score, recall_score, f1_score
+
+  # Determine the scoring strategy based on the 'score' parameter
+  if score == 'precision':
+    scorer = make_scorer(precision_score, average='weighted', zero_division=0)
+  elif score == 'recall':
+    scorer = make_scorer(recall_score, average='weighted', zero_division=0)
+  elif score == 'f1':
+    scorer = make_scorer(f1_score, average='weighted', zero_division=0)
+  else:
+    scorer = score # Use the original score string for other metrics
 
   # Análsiis de validación cruzada
   score_val = pd.DataFrame(cross_val_score(modelo, xtrain, ytrain, cv = folds,
-                                         scoring = score),
+                                         scoring = scorer),
                                          columns=['score'])
   print("Análisis de validación cruzada")
   print(score_val.describe().T)
