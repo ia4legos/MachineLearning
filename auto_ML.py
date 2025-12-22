@@ -752,3 +752,51 @@ def evaluar_modelo_regresion(modelo, xtrain, ytrain, xtest, ytest):
 
     df_metricas = pd.DataFrame(resultados, index=indices)
     return df_metricas
+
+from sklearn.model_selection import cross_val_score
+from sklearn.metrics import make_scorer, mean_squared_error, r2_score
+
+def validar_modelo_regresion(modelo, xtrain, ytrain, score, folds):
+    '''
+    Función que proporciona un análisis de validación cruzada para regresión 
+    con respecto a un score de evaluación.
+
+    Argumentos de entrada:
+    - modelo: modelo entrenado
+    - xtrain: inputs de entrenamiento
+    - ytrain: target de entrenamiento
+    - score: métrica de evaluación ('r2', 'rmse', 'r2_ajustado')
+    - folds: número de folds de validación cruzada
+
+    Return:
+    - tabla con el análisis de validación cruzada
+    '''
+
+    # Definimos funciones auxiliares para las métricas personalizadas
+    def rmse_calc(y_true, y_pred):
+        return np.sqrt(mean_squared_error(y_true, y_pred))
+
+    def r2_adj_calc(y_true, y_pred):
+        # Nota: Usamos el p (número de columnas) de xtrain global
+        n = len(y_true)
+        p = xtrain.shape[1]
+        r2 = r2_score(y_true, y_pred)
+        return 1 - (1 - r2) * (n - 1) / (n - p - 1)
+
+    # Determinamos la estrategia de scoring basada en el parámetro 'score'
+    if score == 'rmse':
+        # RMSE positivo
+        scorer = make_scorer(rmse_calc) 
+    elif score == 'r2_ajustado':
+        # R2 Ajustado
+        scorer = make_scorer(r2_adj_calc)
+    else:
+        # Usa el string original (ej: 'r2')
+        scorer = score 
+
+    # Análisis de validación cruzada
+    # Nota: cross_val_score devuelve un array. Lo convertimos a DataFrame.
+    score_val = pd.DataFrame(cross_val_score(modelo, xtrain, ytrain, cv=folds, scoring=scorer),
+                             columns=['score'])
+    print("Análisis de validación cruzada")
+    print(round(score_val.describe().T),2)
