@@ -800,3 +800,99 @@ def validar_modelo_regresion(modelo, xtrain, ytrain, score, folds):
                              columns=['score'])
     print("Análisis de validación cruzada")
     print(round(score_val.describe().T),2)
+
+from sklearn.feature_selection import RFE
+from sklearn.model_selection import cross_val_score
+from sklearn.metrics import mean_squared_error
+
+def select_variables_regresion(modelo, X, y, k_values, score):
+    """
+    Selecciona las k mejores características utilizando RFE y optimiza según
+    la métrica indicada (rmse, aic o bic).
+
+    Args:
+        modelo: modelo de regresión.
+        X (pd.DataFrame): matriz de inputs.
+        y (pd.Series): vector de target.
+        k_values (list): lista de valores de k a probar.
+        score (str): métrica para decidir el mejor modelo ('rmse', 'aic', 'bic').
+
+    Returns:
+        tupla: 
+            - pd.DataFrame: tabla con valores de k y todas las métricas.
+            - list: nombres de los inputs seleccionados del mejor modelo.
+            - int: El valor de k óptimo según el score elegido.
+            - float: El valor del score óptimo.
+    """
+    
+    # Validar que el score sea válido
+    valid_scores = ['rmse', 'aic', 'bic']
+    if score not in valid_scores:
+        raise ValueError(f"El parámetro 'score' debe ser uno de: {valid_scores}")
+
+    best_k = -1
+    best_score = float('inf') # Inicializamos en infinito porque buscamos MINIMIZAR
+    best_features = None
+    scores_list = []
+    
+    n = len(y) # Número de observaciones para AIC/BIC
+
+    for k in k_values:
+        # Validación de seguridad: k no puede ser mayor que las columnas disponibles
+        if k > X.shape[1]:
+            continue
+
+        # 1. Aplicar RFE para seleccionar k variables
+        selector = RFE(modelo, n_features_to_select=k)
+        selector.fit(X, y)
+        
+        # Filtrar X con las variables seleccionadas
+        mask = selector.support_
+        X_new = X.loc[:, mask]
+        
+        # -----------------------------------------------------------
+        # 2. CÁLCULO DE MÉTRICAS
+        # -----------------------------------------------------------
+        
+        # --- RMSE (usando Validación Cruzada) ---
+        # Sklearn devuelve negativo, lo convertimos a positivo
+        cv_scores = cross_val_score(modelo, X_new, y, cv=10, scoring='neg_root_mean_squared_error')
+        rmse_val = -cv_scores.mean()
+
+        # --- AIC y BIC (usando ajuste sobre todo el set) ---
+        modelo.fit(X_new, y)
+        ypred = modelo.predict(X_new)
+        mse = mean_squared_error(y, ypred)
+        
+        # Parametros = variables (k) + intercepto (1)
+        num_params = k + 1
+        
+        # Fórmulas
+        aic_val = n * np.log(mse) + 2 * num_params
+        bic_val = n * np.log(mse) + num_params * np.log(n)
+
+        # 3. Guardar resultados en un diccionario
+        metrics = {
+            'k': k, 
+            'rmse': rmse_val, 
+            'aic': aic_val, 
+            'bic': bic_val
+        }
+        scores_list.append(metrics)
+
+        # -----------------------------------------------------------
+        # 4. SELECCIÓN DEL MEJOR (OPTIMIZACIÓN)
+        # -----------------------------------------------------------
+        
+        # Obtenemos el valor de la métrica elegida por el usuario
+        current_score_value = metrics[score]
+
+        # Buscamos el MÍNIMO valor
+        if current_score_value < best_score:
+            best_score = current_score_value
+            best_k = k
+            best_features = X.columns[mask].tolist()
+
+    scores_df = pd.DataFrame(scores_list)
+
+    return scores_df, best_features, best_k, best_score
