@@ -801,97 +801,107 @@ def validar_modelo_regresion(modelo, xtrain, ytrain, score, folds):
     print("Análisis de validación cruzada")
     print(round(score_val.describe().T),2)
 
+import pandas as pd
+import numpy as np
 from sklearn.feature_selection import RFE
 from sklearn.model_selection import cross_val_score
 from sklearn.metrics import mean_squared_error
 
 def select_variables_regresion(modelo, X, y, k_values, score):
     """
-    Selecciona las k mejores características utilizando RFE y optimiza según
-    la métrica indicada (rmse, aic o bic).
+    1. Ordena todas las predictoras por importancia usando RFE.
+    2. Evalúa iterativamente los modelos incrementando k.
+    3. Devuelve las variables ordenadas de mayor a menor importancia según RFE.
 
     Args:
         modelo: modelo de regresión.
         X (pd.DataFrame): matriz de inputs.
         y (pd.Series): vector de target.
         k_values (list): lista de valores de k a probar.
-        score (str): métrica para decidir el mejor modelo ('rmse', 'aic', 'bic').
+        score (str): métrica para optimizar ('rmse', 'aic', 'bic').
 
     Returns:
         tupla: 
-            - pd.DataFrame: tabla con valores de k y todas las métricas.
-            - list: nombres de los inputs seleccionados del mejor modelo.
-            - int: El valor de k óptimo según el score elegido.
-            - float: El valor del score óptimo.
+            - pd.DataFrame: Tabla con k, métricas y variables acumuladas.
+            - list: Las mejores variables ORDENADAS por importancia.
+            - int: k óptimo.
+            - float: score óptimo.
     """
     
-    # Validar que el score sea válido
+    # Validación del score
     valid_scores = ['rmse', 'aic', 'bic']
     if score not in valid_scores:
         raise ValueError(f"El parámetro 'score' debe ser uno de: {valid_scores}")
 
+    print("Calculando el ranking global de variables (puede tardar un momento)...")
+    
+    # 1. OBTENER EL ORDEN DE IMPORTANCIA GLOBAL (Ranking)
+    # Al pedirle que seleccione 1, RFE calculará el ranking de eliminación de TODAS.
+    # La variable con ranking 1 es la última en ser eliminada (la más importante).
+    rfe_global = RFE(modelo, n_features_to_select=1)
+    rfe_global.fit(X, y)
+
+    # Creamos un DataFrame para ordenar las variables según su ranking RFE
+    mapa_ranking = pd.DataFrame({
+        'Variable': X.columns,
+        'Ranking': rfe_global.ranking_
+    }).sort_values('Ranking') # Orden ascendente: 1 (mejor), 2 (segunda), ...
+
+    # Lista maestra ordenada de la más importante a la menos importante
+    variables_ordenadas = mapa_ranking['Variable'].tolist()
+    
+    # -------------------------------------------------------------------------
+    
     best_k = -1
-    best_score = float('inf') # Inicializamos en infinito porque buscamos MINIMIZAR
+    best_score = float('inf')
     best_features = None
     scores_list = []
-    
-    n = len(y) # Número de observaciones para AIC/BIC
+    n = len(y)
 
+    print(f"Evaluando combinaciones optimizando por: {score.upper()}...\n")
+
+    # 2. EVALUACIÓN ITERATIVA SIGUIENDO EL ORDEN
     for k in k_values:
-        # Validación de seguridad: k no puede ser mayor que las columnas disponibles
-        if k > X.shape[1]:
-            continue
+        if k > len(variables_ordenadas): continue
 
-        # 1. Aplicar RFE para seleccionar k variables
-        selector = RFE(modelo, n_features_to_select=k)
-        selector.fit(X, y)
+        # Seleccionamos las top k variables de la lista ya ordenada
+        current_vars = variables_ordenadas[:k]
+        X_new = X[current_vars]
         
-        # Filtrar X con las variables seleccionadas
-        mask = selector.support_
-        X_new = X.loc[:, mask]
+        # --- CÁLCULO DE MÉTRICAS ---
         
-        # -----------------------------------------------------------
-        # 2. CÁLCULO DE MÉTRICAS
-        # -----------------------------------------------------------
-        
-        # --- RMSE (usando Validación Cruzada) ---
-        # Sklearn devuelve negativo, lo convertimos a positivo
+        # A) RMSE (Validación Cruzada)
         cv_scores = cross_val_score(modelo, X_new, y, cv=10, scoring='neg_root_mean_squared_error')
         rmse_val = -cv_scores.mean()
 
-        # --- AIC y BIC (usando ajuste sobre todo el set) ---
+        # B) AIC y BIC (Ajuste global)
         modelo.fit(X_new, y)
         ypred = modelo.predict(X_new)
         mse = mean_squared_error(y, ypred)
+        num_params = k + 1 
         
-        # Parametros = variables (k) + intercepto (1)
-        num_params = k + 1
-        
-        # Fórmulas
         aic_val = n * np.log(mse) + 2 * num_params
         bic_val = n * np.log(mse) + num_params * np.log(n)
 
-        # 3. Guardar resultados en un diccionario
+        # Guardamos métricas
         metrics = {
             'k': k, 
             'rmse': rmse_val, 
             'aic': aic_val, 
-            'bic': bic_val
+            'bic': bic_val,
+            # Mostramos la última variable agregada para ver qué aporta
+            'Nueva Variable': current_vars[-1] 
         }
         scores_list.append(metrics)
 
-        # -----------------------------------------------------------
-        # 4. SELECCIÓN DEL MEJOR (OPTIMIZACIÓN)
-        # -----------------------------------------------------------
-        
-        # Obtenemos el valor de la métrica elegida por el usuario
+        # --- OPTIMIZACIÓN ---
         current_score_value = metrics[score]
 
-        # Buscamos el MÍNIMO valor
         if current_score_value < best_score:
             best_score = current_score_value
             best_k = k
-            best_features = X.columns[mask].tolist()
+            # Guardamos la lista tal cual (ya está ordenada por importancia)
+            best_features = current_vars
 
     scores_df = pd.DataFrame(scores_list)
 
