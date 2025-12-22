@@ -646,7 +646,7 @@ def plot_importancias(modelo):
   print(matriz_importancia)
   matriz_importancia.plot.barh();
 
-def grafico_predicion(modelo, xtest, ytest):
+def grafico_prediccion(modelo, xtest, ytest):
     """
     Genera un gráfico de dispersión comparando los valores reales (ytest)
     contra los valores predichos por el modelo.
