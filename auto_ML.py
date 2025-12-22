@@ -689,6 +689,13 @@ def evaluar_modelo_regresion(modelo, xtrain, ytrain, xtest, ytest):
     """
     Calcula y devuelve un DataFrame con RMSE, R2 Ajustado, F-statistic, P-valor,
     AIC y BIC comparando los conjuntos de Train y Test.
+
+    Parámetros:
+    - modelo: El modelo ya entrenado.
+    - xtrain: Datos de características para train.
+    - ytrain: Etiquetas reales correspondientes a xtrain.
+    - xtest: Datos de características para test.
+    - ytest: Etiquetas reales correspondientes a xtest.
     """
 
     resultados = {}
