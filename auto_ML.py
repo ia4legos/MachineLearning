@@ -645,3 +645,103 @@ def plot_importancias(modelo):
   print("Matriz de importancias")
   print(matriz_importancia)
   matriz_importancia.plot.barh();
+
+def grafico_predicion(modelo, xtest, ytest):
+    """
+    Genera un gráfico de dispersión comparando los valores reales (ytest)
+    contra los valores predichos por el modelo.
+
+    Parámetros:
+    - modelo: El modelo ya entrenado (ej. LinearRegression).
+    - xtest: Datos de características para prueba.
+    - ytest: Etiquetas reales correspondientes a xtest.
+    """
+    # 1. Generar las predicciones
+    ypred = modelo.predict(xtest)
+
+    # 2. Configurar el tamaño de la figura
+    plt.figure(figsize=(8,8))
+
+    # 3. Crear el gráfico de dispersión (Scatter Plot)
+    # alpha=0.6 ayuda a ver dónde se concentran los datos si hay muchos puntos solapados
+    plt.scatter(ypred, ytest, alpha=0.6, color='royalblue', edgecolor='k', s=50)
+
+    # 4. Añadir línea de referencia (Identidad perfect y=x)
+    # Calculamos el mínimo y máximo global para trazar la línea diagonal completa
+    min_val = min(np.min(ytest), np.min(ypred))
+    max_val = max(np.max(ytest), np.max(ypred))
+    plt.plot([min_val, max_val], [min_val, max_val], 'r--', linewidth=2, label='Predicción Perfecta')
+
+    # 5. Etiquetas y Títulos
+    plt.xlabel('Valor Predicho', fontsize=12)
+    plt.ylabel('Valor Real', fontsize=12)
+    plt.title('')
+    plt.legend()
+    plt.grid(True, linestyle=':', alpha=0.6)
+
+    # Mostrar gráfico
+    plt.show()
+
+import scipy.stats as stats
+from sklearn.metrics import mean_squared_error, r2_score
+
+def evaluar_modelo_regresion(modelo, xtrain, ytrain, xtest, ytest):
+    """
+    Calcula y devuelve un DataFrame con RMSE, R2 Ajustado, F-statistic, P-valor,
+    AIC y BIC comparando los conjuntos de Train y Test.
+    """
+
+    resultados = {}
+
+    # Iteramos sobre los dos conjuntos (Train y Test)
+    datas = [('Train', xtrain, ytrain), ('Test', xtest, ytest)]
+
+    for nombre, x, y in datas:
+        # 1. Predicciones
+        ypred = modelo.predict(x)
+
+        # 2. Variables auxiliares
+        n = len(y)          # Número de observaciones
+        p = x.shape[1]      # Número de predictores
+
+        # 3. RMSE
+        mse = mean_squared_error(y, ypred)
+        rmse = np.sqrt(mse)
+
+        # 4. R2 y R2 Ajustado
+        r2 = r2_score(y, ypred)
+        r2_adj = 1 - (1 - r2) * (n - 1) / (n - p - 1)
+
+        # 5. Estadístico F y P-valor
+        if r2 > 0 and r2 < 1:
+            f_stat = (r2 / p) / ((1 - r2) / (n - p - 1))
+            p_val = stats.f.sf(f_stat, p, n - p - 1)
+        else:
+            f_stat = np.nan
+            p_val = np.nan
+
+        # 6. AIC y BIC
+        # Cálculo manual basado en la Log-Verosimilitud aproximada usando MSE
+        # k = número de parámetros (predictores + intercepto)
+        k = p + 1
+
+        # Fórmula: AIC = n * ln(MSE) + 2k
+        aic = n * np.log(mse) + 2 * k
+
+        # Fórmula: BIC = n * ln(MSE) + k * ln(n)
+        bic = n * np.log(mse) + k * np.log(n)
+
+        # Guardamos en el diccionario (Asegurando que coincida con el índice de abajo)
+        resultados[nombre] = [rmse, r2_adj, p_val, aic, bic]
+
+    # Crear DataFrame
+    indices = [
+        'RMSE',
+        'R2 Ajustado',
+        'P-Valor F-Stat',
+        'AIC',
+        'BIC'
+    ]
+
+    df_metricas = pd.DataFrame(resultados, index=indices)
+    return df_metricas
