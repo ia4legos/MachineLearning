@@ -363,7 +363,7 @@ def comparar_regresores(strain, target, sizeval, semilla, models_to_train=None):
     X = strain.drop(columns=[target])
     y = strain[target]
     # Stratified split for training and validation sets
-    X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=sizeval, random_state=semilla, stratify=y)
+    X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=sizeval, random_state=semilla)
     
     # Definir los modelos a entrenar (conjunto completo)
     all_regressors = {
