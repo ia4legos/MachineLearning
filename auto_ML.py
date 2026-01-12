@@ -772,6 +772,8 @@ def validar_modelo_regresion(modelo, xtrain, ytrain, score, folds):
     - tabla con el análisis de validación cruzada
     '''
 
+    y_true = ytrain
+    y_pred = modelo.predict(xtrain)
     # Definimos funciones auxiliares para las métricas personalizadas
     def rmse_calc(y_true, y_pred):
         return np.sqrt(mean_squared_error(y_true, y_pred))
