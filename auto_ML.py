@@ -820,12 +820,7 @@ def validar_modelo_regresion(modelo, xtrain, ytrain, score, folds):
     # Obtenemos las estadísticas descriptivas y transponemos
     # Nota: Corregí la sintaxis del round() que tenía un error en tu snippet original
     tabla_resultado = score_val.describe().T.round(4)
-    
-    print(f"--- Análisis de Validación Cruzada ({folds} folds) ---")
-    print(f"Métrica utilizada: {nombre_metrica}")
-    display(tabla_resultado) # Usar display si estás en Jupyter, si no, cambiar por print()
-    
-    return tabla_resultado
+    tabla_resulatdo
 
 import pandas as pd
 import numpy as np
