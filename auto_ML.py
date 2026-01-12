@@ -762,46 +762,70 @@ def validar_modelo_regresion(modelo, xtrain, ytrain, score, folds):
     con respecto a un score de evaluación.
 
     Argumentos de entrada:
-    - modelo: modelo entrenado
-    - xtrain: inputs de entrenamiento
+    - modelo: modelo instanciado o entrenado (sklearn estimator)
+    - xtrain: inputs de entrenamiento (DataFrame o numpy array)
     - ytrain: target de entrenamiento
-    - score: métrica de evaluación ('r2', 'rmse', 'r2_ajustado')
+    - score: métrica de evaluación ('r2', 'rmse', 'r2_ajustado', 'neg_mean_absolute_error', etc.)
     - folds: número de folds de validación cruzada
 
     Return:
-    - tabla con el análisis de validación cruzada
+    - tabla (DataFrame) con el análisis descriptivo de la validación cruzada
     '''
 
-    y_true = ytrain
-    y_pred = modelo.predict(xtrain)
-    # Definimos funciones auxiliares para las métricas personalizadas
+    # 1. Definimos las funciones de métricas personalizadas
+    # Es importante definirlas dentro para que capturen el contexto si fuera necesario
+    
     def rmse_calc(y_true, y_pred):
+        """Calcula Root Mean Squared Error"""
         return np.sqrt(mean_squared_error(y_true, y_pred))
 
     def r2_adj_calc(y_true, y_pred):
-        # Nota: Usamos el p (número de columnas) de xtrain global
+        """Calcula R2 Ajustado"""
         n = len(y_true)
-        p = xtrain.shape[1]
+        # Obtenemos p (número de predictores) de la variable xtrain pasada a la función padre
+        p = xtrain.shape[1] 
         r2 = r2_score(y_true, y_pred)
         return 1 - (1 - r2) * (n - 1) / (n - p - 1)
 
-    # Determinamos la estrategia de scoring basada en el parámetro 'score'
+    # 2. Determinamos la estrategia de scoring
     if score == 'rmse':
-        # RMSE positivo
+        # Creamos un scorer que devuelva el error positivo
         scorer = make_scorer(rmse_calc) 
+        nombre_metrica = "RMSE"
+        
     elif score == 'r2_ajustado':
-        # R2 Ajustado
+        # Creamos el scorer para R2 ajustado
         scorer = make_scorer(r2_adj_calc)
+        nombre_metrica = "R2 Ajustado"
+        
     else:
-        # Usa el string original (ej: 'r2')
+        # Si no es personalizado, usamos el string de scikit-learn (ej: 'r2', 'neg_mean_squared_error')
         scorer = score 
+        nombre_metrica = score
 
-    # Análisis de validación cruzada
-    # Nota: cross_val_score devuelve un array. Lo convertimos a DataFrame.
-    score_val = pd.DataFrame(cross_val_score(modelo, xtrain, ytrain, cv=folds, scoring=scorer),
-                             columns=['score'])
-    print("Análisis de validación cruzada")
-    print(round(score_val.describe().T),2)
+    # 3. Ejecución de la Validación Cruzada
+    try:
+        cv_scores = cross_val_score(estimator=modelo, 
+                                    X=xtrain, 
+                                    y=ytrain, 
+                                    cv=folds, 
+                                    scoring=scorer)
+    except ValueError as e:
+        return f"Error al ejecutar cross_val_score. Verifica la métrica o los datos: {e}"
+
+    # 4. Formateo de resultados
+    # Convertimos a DataFrame para usar .describe()
+    score_val = pd.DataFrame(cv_scores, columns=[nombre_metrica])
+    
+    # Obtenemos las estadísticas descriptivas y transponemos
+    # Nota: Corregí la sintaxis del round() que tenía un error en tu snippet original
+    tabla_resultado = score_val.describe().T.round(4)
+    
+    print(f"--- Análisis de Validación Cruzada ({folds} folds) ---")
+    print(f"Métrica utilizada: {nombre_metrica}")
+    display(tabla_resultado) # Usar display si estás en Jupyter, si no, cambiar por print()
+    
+    return tabla_resultado
 
 import pandas as pd
 import numpy as np
