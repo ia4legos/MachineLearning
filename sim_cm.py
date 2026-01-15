@@ -85,3 +85,30 @@ def distr_discreta(x, fx):
   # Función de distribución
   fdist = [sum(fx[:(l+1)]) for l in range(len(fx))]
   return(pd.DataFrame({"x": x, "fmp":fx, "fdist":fdist}))
+
+# Función para obtener el estimador Monte Carlo de h(x) y un intervalo de confianza al 95%
+def MC_estim(sims):
+  """
+  Función para obtener el estimador Monte Carlo de h(x) y un intervalo de confianza al 95%
+
+  Args:
+   sims: Si queremos un estimador de h(x) pasamos directamente als simulaciones,
+          mientras que si deseamos una probabildiad debemos pasar el vector 1-0
+          que cumple con las condiciones de la probabilidad buscada
+
+  Returns: 
+    Devuelve el estimador e intervalo de confianza por Monte Carlo
+  """
+  from scipy.stats import norm
+
+  # Número de simulaciones cargadas
+  size = len(sims)
+  # Estimador MC
+  estim = sims.mean()
+  # Estimador MC del IC
+  error = math.sqrt(sims.var())*math.sqrt(size-1)/size
+  cuantil = norm.ppf(1-0.05/2)
+  ic_low = estim - cuantil*error
+  ic_up = estim + cuantil*error
+  # Resultado
+  return([round(estim,4), round(ic_low,4), round(ic_up,4)])
