@@ -68,3 +68,20 @@ def graficar_discreta(x, fx):
   ax[1].set_xlabel('Espacio muestral')
   plt.tight_layout()
 
+# Función para obtener un dataframe con la función de masa de probabilidad y la función de distribución de una variable discreta.
+def distr_discreta(x, fx):
+  """
+  Función para obtener un dataframe con la función de masa de probabilidad y la función de distribución de una variable discreta.
+
+  Args:
+    x: valores de la varaible discreta
+    fx: función de masa de probabilidad
+
+  Returns:
+    pdDataFrame con los valores de la variable, la función de masa de probabilidad y la función de distribución.
+  """
+  # posiciones en el gráfico de los valores d ela variable discreta
+  pos = np.arange(len(x))
+  # Función de distribución
+  fdist = [sum(fx[:(l+1)]) for l in range(len(fx))]
+  return(pd.DataFrame({"x": x, "fmp":fx, "fdist":fdist}))
