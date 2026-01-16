@@ -216,7 +216,7 @@ def poisson_simulation(rate, time_duration, seed, show_visualization=True):
     random.seed(seed)
     
     if isinstance(rate, int):
-        num_events, event_times, inter_arrival_times = generate_poisson_events(rate, time_duration)
+        num_events, event_times, inter_arrival_times = generate_poisson_events(rate, time_duration, seed)
 
         if show_visualization:
             plot_non_sequential_poisson(num_events, event_times, inter_arrival_times, rate, time_duration)
@@ -229,7 +229,7 @@ def poisson_simulation(rate, time_duration, seed, show_visualization=True):
         inter_arrival_times_list = []
 
         for individual_rate in rate:
-            num_events, event_times, inter_arrival_times = generate_poisson_events(individual_rate, time_duration)
+            num_events, event_times, inter_arrival_times = generate_poisson_events(individual_rate, time_duration, seed)
             num_events_list.append(num_events)
             event_times_list.append(event_times)
             inter_arrival_times_list.append(inter_arrival_times)
