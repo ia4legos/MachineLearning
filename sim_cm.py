@@ -113,7 +113,7 @@ def MC_estim(sims):
   # Resultado
   return([round(estim,4), round(ic_low,4), round(ic_up,4)])
 
-def generate_poisson_events(rate, time_duration, seed):
+def generate_poisson_events(rate, time_duration, semilla):
   """
   La función generate_poisson_events simula un proceso de Poisson mediante la generación de eventos
   con una tasa promedio dada (rate) durante un período de tiempo especificado (time_duration).
@@ -122,7 +122,7 @@ def generate_poisson_events(rate, time_duration, seed):
   los tiempos entre llegadas correspondientes (inter_arrival_times), lo que proporciona una
   representación de un proceso de Poisson.
   """
-  random.seed(seed)
+  random.seed(semilla)
   num_events = np.random.poisson(rate * time_duration)
   event_times = np.sort(np.random.uniform(0, time_duration, num_events))
   inter_arrival_times = np.diff(event_times)
@@ -201,7 +201,7 @@ def plot_sequential_poisson(num_events_list, event_times_list, inter_arrival_tim
   plt.show()
 
 
-def poisson_simulation(rate, time_duration, seed, show_visualization=True):
+def poisson_simulation(rate, time_duration, semilla, show_visualization=True):
     """
     La función poisson_simulation simula un proceso de Poisson con una sola tasa o una lista de tasas
     durante un período de tiempo especificado. Si se proporciona una sola tasa, genera eventos de Poisson
@@ -213,10 +213,10 @@ def poisson_simulation(rate, time_duration, seed, show_visualization=True):
     eventos (event_times_list), tiempos entre llegadas (inter_arrival_times_list) cuando la visualización
     está desactivada o None cuando la visualización está habilitada.
     """
-    random.seed(seed)
+    random.seed(semilla)
     
     if isinstance(rate, int):
-        num_events, event_times, inter_arrival_times = generate_poisson_events(rate, time_duration, seed)
+        num_events, event_times, inter_arrival_times = generate_poisson_events(rate, time_duration, semilla)
 
         if show_visualization:
             plot_non_sequential_poisson(num_events, event_times, inter_arrival_times, rate, time_duration)
@@ -229,7 +229,7 @@ def poisson_simulation(rate, time_duration, seed, show_visualization=True):
         inter_arrival_times_list = []
 
         for individual_rate in rate:
-            num_events, event_times, inter_arrival_times = generate_poisson_events(individual_rate, time_duration, seed)
+            num_events, event_times, inter_arrival_times = generate_poisson_events(individual_rate, time_duration, semilla)
             num_events_list.append(num_events)
             event_times_list.append(event_times)
             inter_arrival_times_list.append(inter_arrival_times)
