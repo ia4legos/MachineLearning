@@ -201,7 +201,7 @@ def plot_sequential_poisson(num_events_list, event_times_list, inter_arrival_tim
   plt.show()
 
 
-def poisson_simulation(rate, time_duration, show_visualization=True, seed):
+def poisson_simulation(rate, time_duration, seed, show_visualization=True):
     """
     La función poisson_simulation simula un proceso de Poisson con una sola tasa o una lista de tasas
     durante un período de tiempo especificado. Si se proporciona una sola tasa, genera eventos de Poisson
