@@ -236,3 +236,134 @@ def poisson_simulation(rate, time_duration, show_visualization=True):
             plot_sequential_poisson(num_events_list, event_times_list, inter_arrival_times_list, rate, time_duration)
         else:
             return num_events_list, event_times_list, inter_arrival_times_list
+
+def matriz_tasas_generadora(tiempos, prob):
+  """
+  Función para obtener la matriz de tasas (R) y la matriz generadora (Q) a
+  partir de los tiempos de permanenecia y las probabildiades de salto del proceso.
+
+  Valores de entrada:
+  - tiempos: lista con tiempos de permanencia de cada estado
+  - prob: matriz de probabilidades de salto
+
+  Valores de salida:
+  - R: matriz de tasas
+  - Q: matriz generadora
+  """
+  # Convertimos en arrays las lsitas de entrada
+  tiempos = np.array(tiempos)
+  prob = np.array(prob)
+  # Tasas de permanencia
+  tasas_permanencia = np.zeros(len(tiempos))
+  # Calcula tasas de permanencia solo para tiempos distintos de cero
+  mask = tiempos != 0
+  tasas_permanencia[mask] = 1 / tiempos[mask]
+  # Matriz de tasas
+  R = np.round(tasas_permanencia[:, np.newaxis] * prob,2)
+  # Matriz generadora
+  Q = np.round(R - np.diag(tasas_permanencia),2)
+  return R,Q
+
+class CMTC:
+    def __init__(self, Rmat): # Add estados as an argument
+        """
+        Inicializa la clase CMTC con la matriz de tasas Rmat y los estados.
+        """
+        self.Rmat = np.array(Rmat)
+
+    def matriz_prob_salto(self, estados):
+        """Obtiene la matriz de probabildiad de salto dividiendo cada elemento de cada fila de tasas por la suma de la fila."""
+        Rmat = self.Rmat
+        suma_filas = np.sum(Rmat, axis=1, keepdims=True)
+        # Evitar la división por cero
+        suma_filas[suma_filas == 0] = 1
+        tasas_normalizadas = Rmat / suma_filas
+        return pd.DataFrame(np.round(tasas_normalizadas, 6),index=estados, columns=estados)
+
+    def matriz_prob_trans(self, estados, ts, cal=1):
+        """
+        Calcula la matriz de probabilidades de transición en el instante ts.
+        """
+        epsilon = 1e-05
+        Rmat = self.Rmat
+        ris = np.sum(Rmat, axis=1)
+        rlimit = np.max(ris) if cal == 1 else np.sum(Rmat)
+        hatP = Rmat / rlimit
+        np.fill_diagonal(hatP, 1 - ris / rlimit)
+        rts = rlimit * ts
+        A = hatP
+        c = np.exp(-rts)
+        B = c * np.identity(Rmat.shape[0])
+        suma = c
+        k = 1
+        while suma < (1 - epsilon):
+            c = c * rts / k
+            B = B + c * A
+            A = A @ hatP
+            suma = suma + c
+            k = k + 1
+        B = pd.DataFrame(np.round(B, 6), index=estados, columns=estados)
+        return B
+
+    def tiempos_ocupacion(self, estados, Ts, cal=1):
+        """
+        Calcula los tiempos de ocupación hasta el instante Ts.
+        """
+        epsilon = 1e-05
+        Rmat = self.Rmat
+        ris = np.sum(Rmat, axis=1)
+        rlimit = np.max(ris) if cal == 1 else np.sum(Rmat)
+        hatP = Rmat / rlimit
+        np.fill_diagonal(hatP, 1 - ris / rlimit)
+        k = 0
+        A = hatP.copy()
+        yek = math.exp(-rlimit * Ts)
+        ygk = 1 - yek
+        suma = ygk
+        B = ygk * np.identity(Rmat.shape[0])
+        cota = Ts - epsilon
+        while suma / rlimit < cota:
+            k += 1
+            yek = yek * (rlimit * Ts) / k
+            ygk = ygk - yek
+            B = B + ygk * A
+            A = A @ hatP
+            suma = suma + ygk
+        resultados = pd.DataFrame(np.round(B / rlimit, 6), index=estados, columns=estados)
+        return resultados
+
+    def distr_lim_general(self, estados):
+        """
+        Calcula la distribución límite.
+        """
+        Rmat = self.Rmat
+        N = Rmat.shape[0]
+        sumarows = np.diag(np.sum(Rmat, axis=1))
+        A = Rmat.T - sumarows
+        A[N - 1, :] = np.ones(N)
+        b = np.zeros(N)
+        b[N - 1] = 1
+        p = np.linalg.solve(A, b)
+        p = pd.DataFrame(np.round(p, 6), index=estados, columns=['p'])
+        return p
+
+    def tiempos_primer_paso(self, A, estados):
+        """
+        Calcula los tiempos de primer paso al conjunto de estados A.
+        """
+        Rmat = self.Rmat
+        estados = [str(estado) for estado in estados]
+        rts = np.diag(np.sum(Rmat, axis=1))
+        Rmod = Rmat[~np.isin(np.arange(Rmat.shape[0]), A), :]
+        Rmod = Rmod[:, ~np.isin(np.arange(Rmat.shape[1]), A)]
+        rates = rts[~np.isin(np.arange(rts.shape[0]), A), :]
+        rates = rates[:, ~np.isin(np.arange(rts.shape[1]), A)]
+        lms = Rmod.shape[0]
+        B = rates - Rmod
+        CS = np.ones(lms)
+        ps = np.linalg.solve(B, CS)
+        resultados = {}
+        for i, estado in enumerate(estados):
+            if i not in A:
+                resultados[f"estado {estado}"] = ps[i]
+        return resultados
