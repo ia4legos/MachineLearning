@@ -760,3 +760,73 @@ def MC_MMs(tasa_arrival, tasa_service, tiempo, servers, nsims):
         analisis_MC.loc[metrica, ['Media', 'IC0.025', 'IC0.975']] = MC_estim(eficiencia[metrica])
 
     return analisis_MC
+
+def system_MMinf(tasa_arrival, tasa_service, tiempo):
+    """
+    Simulador simpy del sistema M/M/infinito
+
+    Parámetros de entrada:
+    - tasa_arrival: Tasa de llegadas de clientes (clientes/ut)
+    - tasa_service: Tasa de servicio de clientes (clientes/ut)
+    - tiempo: Tiempo total de simulación (ut)
+
+    Devuelve:
+      Dataframe con el historial de simulación de cada cliente con columnas
+        * ID_customer (identificador del cliente)
+        * T_in (instante de tiempo en que el cliente accede al sistema)
+        * T_out (instante de tiempo en que el cliente sale al sistema)
+        * n_system (clientes en el sistema en el instante en que el cliente accede al sistema)
+        * t_system (tiempo que el cliente pasa en el sistema)
+    """
+
+    # Lista para guardar los datos
+    simula = []
+
+    class Servicio:
+        def __init__(self, env, id_cliente, servidor):
+            self.env = env
+            self.id_cliente = id_cliente
+            self.servidor = servidor
+
+        def servicio(self):
+            # 1. LLEGADA
+            t_arr = self.env.now
+            # N_system: Clientes dentro justo antes de que este entre
+            n_system = self.servidor.count
+            # 2. ENTRADA (Sin espera, capacidad infinita)
+            with self.servidor.request() as solicitud:
+                yield solicitud
+                # Generamos duración
+                t_service = random.expovariate(tasa_service)
+                # 3. SERVICIO
+                yield self.env.timeout(t_service)
+                # 4. SALIDA
+                t_out = self.env.now
+                # 5. REGISTRO
+                # Se guarda al terminar, por lo que el orden natural sería por T_out
+                simula.append((
+                    self.id_cliente,
+                    t_arr,
+                    t_out,
+                    t_out - t_arr,  # T_system
+                    n_system
+                ))
+
+    def llegada_clientes(env, tasa_arrival, servidor):
+        id_cliente = 1
+        while True:
+            yield env.timeout(random.expovariate(tasa_arrival))
+            cliente = Servicio(env, id_cliente, servidor)
+            env.process(cliente.servicio())
+            id_cliente += 1
+
+    # --- EJECUCIÓN ---
+    env = simpy.Environment()
+    servidor = simpy.Resource(env, capacity=float('inf')) # Infinitos servidores
+    env.process(llegada_clientes(env, tasa_arrival, servidor))
+    env.run(until=tiempo)
+    # --- DATAFRAME ---
+    df = pd.DataFrame(simula, columns=['ID_customer', 'T_in', 'T_out', 'T_system', 'N_system'])
+    df = df.sort_values(by='T_in').reset_index(drop=True)
+    
+    return df
