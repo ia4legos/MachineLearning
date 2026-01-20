@@ -985,3 +985,19 @@ def get_stats_MMinf(historial, tiempo):
     resumen = pd.DataFrame(dict_stats, index=['Sistema'])
     
     return resumen
+
+def MC_MMinf(tasa_arrival, tasa_service, tiempo, nsims):
+  # Conjunto de simulaciones
+  eficiencia = pd.DataFrame(columns=['Clientes', 'L', 'W', '% Inactivo'])
+  random.seed(124)
+  for i in range(nsims):
+    historial = system_MMinf(tasa_arrival, tasa_service, tiempo)
+    eficiencia.loc[i,:] = get_stats_MMinf(historial, tiempo).iloc[0,].tolist()
+
+  # Análisis Monte-Carlo
+  analisis_MC = pd.DataFrame(columns=['Media', 'IC0.025', 'IC0.975'])
+  nombres = eficiencia.columns
+  for i in range(len(nombres)):
+      analisis_MC.loc[i, ['Media', 'IC0.025', 'IC0.975']] = MC_estim(eficiencia[nombres[i]])
+  analisis_MC.index = nombres
+  return analisis_MC
