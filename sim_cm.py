@@ -1001,3 +1001,141 @@ def MC_MMinf(tasa_arrival, tasa_service, tiempo, nsims):
       analisis_MC.loc[i, ['Media', 'IC0.025', 'IC0.975']] = MC_estim(eficiencia[nombres[i]])
   analisis_MC.index = nombres
   return analisis_MC
+
+
+def system_MMsK(tasa_arrival, tasa_service, tiempo, servers, K):
+    """
+    Simulador simpy del sistema M/M/s/K (Capacidad finita)
+
+    Parámetros:
+    - tasa_arrival: Tasa de llegadas lambda
+    - tasa_service: Tasa de servicio mu
+    - tiempo: Tiempo de simulación
+    - servers: Número de servidores (s)
+    - K: Capacidad del sistema (s + cola máxima)
+    
+    Devuelve: DataFrame con historial
+    """
+    import simpy
+    # Lista para guardar registros
+    simula = []
+    
+    # Lista auxiliar para IDs de servidores (ej: [1, 2, 3])
+    server_ids_list = list(range(1, servers + 1))
+
+    class Servicio:
+        def __init__(self, env, id_cliente, servers, servidor, server_id, K):
+            self.env = env
+            self.id_cliente = id_cliente
+            self.servidores = servers
+            self.servidor = servidor
+            self.server_id = server_id
+            self.K = K
+
+        def servicio(self):
+            t_arr = self.env.now
+            
+            # Condición de bloqueo: ¿Hay sitio en el sistema?
+            # Capacidad ocupada = gente en cola + gente siendo atendida
+            ocupacion_actual = len(self.servidor.queue) + self.servidor.count
+            
+            if ocupacion_actual < self.K:
+                # --- CASO ACEPTADO ---
+                aceptado = 1
+                
+                # Estadísticas Pre-Servicio
+                cola = len(self.servidor.queue)
+                servidos = self.servidor.count
+                sistema = cola + servidos
+                
+                with self.servidor.request() as solicitud:
+                    yield solicitud # Espera en cola si es necesario
+                    
+                    # --- INICIO SERVICIO ---
+                    t_ini = self.env.now
+                    t_service = random.expovariate(tasa_service)
+                    
+                    yield self.env.timeout(t_service)
+                    
+                    # --- FIN SERVICIO ---
+                    t_out = self.env.now
+                    
+                    # Guardamos resultados (AÑADIDO self.id_cliente AL PRINCIPIO)
+                    simula.append((
+                        self.id_cliente,    # <--- NUEVO CAMPO
+                        self.server_id,
+                        t_arr,
+                        t_ini,
+                        t_service,
+                        t_out,
+                        t_out - t_arr,      # T_system
+                        t_ini - t_arr,      # T_queue
+                        sistema,
+                        cola,
+                        aceptado
+                    ))
+            else:
+                # --- CASO RECHAZADO (SISTEMA LLENO) ---
+                aceptado = 0
+                cola = self.K - self.servidores # La cola está llena
+                sistema = self.K                # El sistema está lleno
+                t_out = t_arr                   # Sale inmediatamente (rebotado)
+                
+                # Guardamos resultados (AÑADIDO self.id_cliente)
+                simula.append((
+                    self.id_cliente,    # <--- NUEVO CAMPO
+                    0,                  # ID Server 0 indica rechazo/sin servicio
+                    t_arr,
+                    np.nan,             # No hubo servicio
+                    np.nan,
+                    np.nan,             # No salió normalmente
+                    np.nan,
+                    np.nan,
+                    sistema,
+                    cola,
+                    aceptado
+                ))
+
+    def llegada_clientes(env, tasa_arrival):
+        id_cliente = 0
+        while True:
+            # Generar siguiente llegada
+            tiempo_entre_llegadas = random.expovariate(tasa_arrival)
+            yield env.timeout(tiempo_entre_llegadas)
+            
+            id_cliente += 1
+            
+            # Asignación rotativa de ID visual del servidor
+            # (Nota: SimPy asigna el recurso real, esto es solo etiqueta)
+            current_server_id = server_ids_list[(id_cliente - 1) % servers]
+            
+            cliente = Servicio(env, id_cliente, servers, servidor, current_server_id, K)
+            env.process(cliente.servicio())
+
+    # --- EJECUCIÓN ---
+    env = simpy.Environment()
+    servidor = simpy.Resource(env, capacity=servers)
+    
+    env.process(llegada_clientes(env, tasa_arrival))
+    env.run(until=tiempo)
+
+    # --- PROCESADO ---
+    # Definimos columnas incluyendo la nueva ID_customer
+    cols = ['ID_customer', 'ID_server', 'T_in', 'T_init_service', 
+            'T_service', 'T_out', 'T_system', 'T_queue',
+            'N_system', 'N_queue', 'Accepted']
+            
+    df = pd.DataFrame(simula, columns=cols)
+    
+    # Ordenar y limpiar
+    df = df.sort_values(by=["T_in"]).reset_index(drop=True)
+
+    # Lógica de recorte final (conservada de tu código original)
+    # Nota: Filtramos NaNs en T_out para que idxmax no falle con los rechazados
+    if not df['T_out'].dropna().empty:
+        indice_max_tout = df['T_out'].idxmax()
+        # Aseguramos no pasarnos del índice
+        corte = min(indice_max_tout + 2, len(df))
+        df = df.iloc[:corte, :]
+
+    return df
