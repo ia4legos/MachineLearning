@@ -727,3 +727,36 @@ def get_stats_MMs(historial, servidores, tiempo):
     resumen = pd.DataFrame(dict_stats, index=['Sistema'])
     
     return resumen
+
+def MC_MMs(tasa_arrival, tasa_service, tiempo, servers, nsims):
+    # 1. Contenedor temporal para los resultados
+    # Usamos una lista en lugar de un DataFrame pre-definido para flexibilidad
+    resultados_acumulados = []
+    
+    # Semilla para reproducibilidad
+    random.seed(124) 
+
+    for i in range(nsims):
+        # A. Ejecutar simulación
+        historial = system_MMs(tasa_arrival, tasa_service, tiempo, servers)
+        # B. Obtener estadísticas con la nueva función
+        # Esto devuelve un DataFrame de 1 fila con columnas dinámicas (S1, S2...)
+        stats_df = get_stats_MMs(historial, servers, tiempo)
+        # C. Guardar la fila de resultados
+        # Convertimos la fila a diccionario y la añadimos a la lista
+        resultados_acumulados.append(stats_df.iloc[0].to_dict())
+
+    # 2. Crear DataFrame con todas las simulaciones
+    # Pandas detecta automáticamente los nombres de las columnas (incluyendo S1, S2...)
+    eficiencia = pd.DataFrame(resultados_acumulados)
+
+    # 3. Análisis Monte-Carlo
+    analisis_MC = pd.DataFrame(columns=['Media', 'IC0.025', 'IC0.975'])
+    nombres_metricas = eficiencia.columns
+
+    for metrica in nombres_metricas:
+        # Aplicamos la función MC_estim a cada columna detectada
+        # Asumimos que MC_estim devuelve [Media, Límite Inferior, Límite Superior]
+        analisis_MC.loc[metrica, ['Media', 'IC0.025', 'IC0.975']] = MC_estim(eficiencia[metrica])
+
+    return analisis_MC
