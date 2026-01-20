@@ -424,7 +424,7 @@ def system_MMs(tasa_arrival, tasa_service, tiempo, servers):
             # servidor.count: Número de servidores ocupados actualmente.
             cola = len(self.servidor.queue)
             servidos = self.servidor.count
-            sistema = cola + servidos 
+            sistema = cola + servidos
 
             # Paso 3: SOLICITUD DE RECURSO (Entrar a la cola/servidor)
             # 'self.servidor.request()' intenta ocupar un servidor.
@@ -469,36 +469,36 @@ def system_MMs(tasa_arrival, tasa_service, tiempo, servers):
                                sistema,         # N total al llegar
                                cola))           # N cola al llegar
 
-        def llegada_clientes(env, tasa_arrival):
-            id_cliente = 1  # Contador para dar ID único a cada cliente
-            server_id = 1   # Contador auxiliar para asignar servidor (rotativo)
+    # Función para generar el proceso de llegada de los clientes (Movida fuera de la clase Servicio)
+    def llegada_clientes(env, tasa_arrival):
+        id_cliente = 1  # Contador para dar ID único a cada cliente
 
-            while True:
-              # Paso A: TIEMPO ENTRE LLEGADAS
-              # Calculamos cuánto tiempo pasará hasta que llegue el siguiente cliente.
-              tiempo_entre_llegadas = random.expovariate(tasa_arrival)
+        while True:
+          # Paso A: TIEMPO ENTRE LLEGADAS
+          # Calculamos cuánto tiempo pasará hasta que llegue el siguiente cliente.
+          tiempo_entre_llegadas = random.expovariate(tasa_arrival)
 
-              # Paso B: ESPERA HASTA LA LLEGADA
-              # Detiene la creación de clientes durante ese tiempo aleatorio.
-              yield env.timeout(tiempo_entre_llegadas)
+          # Paso B: ESPERA HASTA LA LLEGADA
+          # Detiene la creación de clientes durante ese tiempo aleatorio.
+          yield env.timeout(tiempo_entre_llegadas)
 
-              # Paso C: LÓGICA DE ASIGNACIÓN DE SERVIDOR (Rotativo)
-              # Intenta asignar un ID de servidor 1, 2, ... s, 1, 2...
-              # Nota: Esto es una etiqueta visual, SimPy asignará el primer recurso libre real.
-              server_id = server_ids[(id_cliente+1) % servers]
+          # Paso C: LÓGICA DE ASIGNACIÓN DE SERVIDOR (Rotativo)
+          # Intenta asignar un ID de servidor 1, 2, ... s, 1, 2...
+          # Nota: Esto es una etiqueta visual, SimPy asignará el primer recurso libre real.
+          # Using modulo operator for server_id assignment to cycle through available servers
+          current_server_id = server_ids[(id_cliente - 1) % servers]
 
-              # Paso D: CREACIÓN DEL OBJETO CLIENTE
-              # Instanciamos la clase Servicio con los datos actuales.
-              cliente = Servicio(env, id_cliente, servidor, server_id)
+          # Paso D: CREACIÓN DEL OBJETO CLIENTE
+          # Instanciamos la clase Servicio con los datos actuales.
+          cliente = Servicio(env, id_cliente, servidor, current_server_id)
 
-              # Contadores para la siguiente vuelta
-              id_cliente += 1
-              server_id += 1 
+          # Contadores para la siguiente vuelta
+          id_cliente += 1
 
-              # Paso E: INICIO DEL PROCESO DEL CLIENTE
-              # Le decimos al entorno: "Arranca el método servicio() de este nuevo cliente".
-              # Esto corre en paralelo (async) con el resto de la simulación.
-              env.process(cliente.servicio())
+          # Paso E: INICIO DEL PROCESO DEL CLIENTE
+          # Le decimos al entorno: "Arranca el método servicio() de este nuevo cliente".
+          # Esto corre en paralelo (async) con el resto de la simulación.
+          env.process(cliente.servicio())
 
     # 1. CREAR ENTORNO
     # El cerebro de la simulación que maneja el reloj (env.now).
@@ -520,11 +520,11 @@ def system_MMs(tasa_arrival, tasa_service, tiempo, servers):
     # 5. PROCESAR RESULTADOS
     # Convertimos la lista de tuplas en un DataFrame legible.
     df = pd.DataFrame(simula, columns=['ID_customer', 'ID_server', 'T_in', 'T_init_service', 'T_service', 'T_out', 'T_system', 'T_queue','N_system', 'N_queue'])
-    
+
     # Ordenamos por ID de cliente para que la tabla se vea ordenada 1, 2, 3...
     df = df.sort_values(by = ["ID_customer"])
 
-    return df              
+    return df     
 
 
 
