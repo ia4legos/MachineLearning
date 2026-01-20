@@ -657,6 +657,25 @@ def plot_historial_MMs(historial):
 
 
 def get_stats_MMs(historial, servidores, tiempo):
+  """
+  Función para obtener medidas de eficiencia del sistema
+
+  Argumentos:
+    historial: Dataframe con el historial de simulación de cada
+    servidores: Número de servidores
+    tiempo: Tiempo de simulación
+
+  Devuelve:
+    Dataframe con las medidas de eficiencia del sistema
+      - 'Clientes', Clientes que han accedido al sistema
+      - 'L', Número medio de clienets en el sistema
+      - 'Lq', Número medio de clientes en la cola
+      - 'W', Tiempo medio de permanencia en el sistema
+      - 'Wq', Tiemo medio de permanencia en la cola
+      - '% tq', porcentaje de tiempo que los clientes pasan en cola respecto del tiempo total en el sistema
+      - '% so', porcentaje de ocupación de los servidores
+      - '% Ocupación ..', porcentaje de ocupación de cada servidor.    
+  """
     # 1. Medidas Básicas
     clientes = historial.shape[0]
     
