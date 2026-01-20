@@ -653,3 +653,58 @@ def plot_historial_MMs(historial):
           ax_nqueue.bar_label(container, fmt='%.1f%%', padding=3, fontsize=9)
 
   plt.show()
+
+
+
+def get_stats_MMs(historial, servidores, tiempo):
+    # 1. Medidas Básicas
+    clientes = historial.shape[0]
+    
+    # Prevenimos errores si el historial está vacío
+    if clientes == 0:
+        return pd.DataFrame({'Mensaje': ['Sin clientes procesados']}).T
+
+    L = historial['N_system'].mean()  # Promedio clientes en sistema
+    Lq = historial['N_queue'].mean()  # Promedio clientes en cola
+    W = historial['T_system'].mean()  # Tiempo promedio en sistema
+    Wq = historial['T_queue'].mean()  # Tiempo promedio en cola
+    
+    # % Tiempo en cola respecto al sistema
+    perc_tq = (Wq / W * 100) if W > 0 else 0
+
+    # ---------------------------------------------------------------
+    # 2. CÁLCULO DE OCUPACIÓN GLOBAL (% so)
+    # ---------------------------------------------------------------
+    # Este cálculo es INDEPENDIENTE de los IDs de los servidores.
+    # Suma todos los tiempos de servicio trabajados por cualquier servidor.
+    total_service_time = historial['T_service'].sum()
+    # Capacidad total disponible = (número servidores) * (tiempo simulación)
+    capacity_total = servidores * tiempo
+    perc_so = (total_service_time / capacity_total) * 100
+
+    # ---------------------------------------------------------------
+    # 3. OCUPACIÓN POR CADA SERVIDOR (S1, S2...) - CORREGIDO
+    # ---------------------------------------------------------------
+    # Agrupamos por ID_server. 
+    usage_per_server = historial.groupby('ID_server')['T_service'].sum()
+    dict_stats = {
+        'Clientes': round(clientes, 0),
+        'L': round(L, 2),
+        'Lq': round(Lq, 2),
+        'W': round(W, 2),
+        'Wq': round(Wq, 2),
+        '% tq (Cola/Total)': round(perc_tq, 2),
+        '% so (Ocupación Global)': round(perc_so, 2)
+    }
+
+    for s in range(1, servidores + 1):
+        # Buscamos el ID 's' (1, 2, 3...). Si no existe, devuelve 0.
+        t_trabajado = usage_per_server.get(s, 0) 
+        ocupacion_individual = (t_trabajado / tiempo) * 100
+        # Guardamos con la etiqueta correcta S1, S2, S3...
+        dict_stats[f'% Ocupación S{s}'] = round(ocupacion_individual, 2)
+
+    # 4. Crear DataFrame final con Index "Sistema"
+    resumen = pd.DataFrame(dict_stats, index=['Sistema'])
+    
+    return resumen
