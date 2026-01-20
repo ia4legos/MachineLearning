@@ -367,3 +367,130 @@ class CMTC:
             if i not in A:
                 resultados[f"estado {estado}"] = ps[i]
         return resultados
+
+
+import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
+import seaborn as sns
+import numpy as np
+from matplotlib.lines import Line2D
+import warnings
+
+# Filtramos advertencias menores por si acaso alguna versión diferente de librería protesta
+warnings.filterwarnings("ignore")
+
+def plot_historial_MMs(historial):
+  """
+  Funnción para representar el historial de simulación del sistema M/M/s
+
+  Parámetros de entrada:
+  - historial: Dataframe
+
+  Devuelve:
+    Gráficas del historial de simulación
+  """
+  # 1. Tamaño de la figura
+  fig = plt.figure(figsize=(22, 12)) 
+  
+  # --- ESTRUCTURA DE LA REJILLA (GRID) ---
+  gs_main = gridspec.GridSpec(1, 2, figure=fig, width_ratios=[1, 2.2], wspace=0.15)
+  gs_right = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=gs_main[1], 
+                                              height_ratios=[1, 1], hspace=0.4)
+  gs_right_top = gridspec.GridSpecFromSubplotSpec(1, 3, subplot_spec=gs_right[0], wspace=0.3)
+  gs_right_bot = gridspec.GridSpecFromSubplotSpec(1, 2, subplot_spec=gs_right[1], wspace=0.3)
+
+  # --- CREACIÓN DE LOS EJES ---
+  ax_gantt_cli = fig.add_subplot(gs_main[0])          
+  ax_tservice  = fig.add_subplot(gs_right_top[0])     
+  ax_compare   = fig.add_subplot(gs_right_top[1])     
+  ax_gantt_srv = fig.add_subplot(gs_right_top[2])     
+  ax_nsystem   = fig.add_subplot(gs_right_bot[0])     
+  ax_nqueue    = fig.add_subplot(gs_right_bot[1])     
+
+  # ==========================================================================
+  # 1. GANTT CLIENTES (IZQUIERDA)
+  # ==========================================================================
+  ax_gantt_cli.hlines(y=historial['ID_customer'], 
+             xmin=historial['T_in'], 
+             xmax=historial['T_out'], 
+             color='limegreen', linewidth=3, label='Permanencia en el sistema')
+  ax_gantt_cli.scatter(x=historial['T_init_service'], 
+              y=historial['ID_customer'], 
+              color='red', s=50, zorder=3, marker='|', linewidth=2, label='Inicio Servicio')
+  ax_gantt_cli.set_xlabel('Tiempo de simulación')
+  ax_gantt_cli.set_ylabel('ID Cliente')
+  ax_gantt_cli.set_title('Cronograma de Clientes (Gantt)')
+  ax_gantt_cli.legend(loc='upper left', fontsize='small')
+  ax_gantt_cli.grid(True, alpha=0.3, axis='x')
+
+  # ==========================================================================
+  # 2. DISTRIBUCIÓN T. SERVICIO (DERECHA ARRIBA 1)
+  # ==========================================================================
+  # CORRECCIÓN: Se añade hue=ID_server y legend=False para evitar FutureWarning
+  sns.boxplot(x='ID_server', y='T_service', hue='ID_server', data=historial, 
+              ax=ax_tservice, palette='Blues', legend=False)
+  ax_tservice.set_xlabel('Servidor')
+  ax_tservice.set_ylabel('Tiempo')
+  ax_tservice.set_title('Distribución T. Servicio')
+
+  # ==========================================================================
+  # 3. COMPARATIVA DE TIEMPOS (DERECHA ARRIBA 2)
+  # ==========================================================================
+  data_cajas = historial[['T_system', 'T_queue', 'T_service']].copy()
+  data_cajas.columns = ['Sistema', 'Cola', 'Servicio']
+  sns.boxplot(data=data_cajas, orient='h', ax=ax_compare, palette="Set2")
+  ax_compare.set_xlabel('Tiempo')
+  ax_compare.set_title('Comparativa Tiempos')
+  ax_compare.grid(True, alpha=0.3, axis='x')
+
+  # ==========================================================================
+  # 4. GANTT SERVIDORES (DERECHA ARRIBA 3)
+  # ==========================================================================
+  max_tiempo = historial['T_out'].max()
+  unique_servers = sorted(historial['ID_server'].unique())
+  # A) Barra de DISPONIBILIDAD
+  for srv in unique_servers:
+      ax_gantt_srv.hlines(y=srv, xmin=0, xmax=max_tiempo, 
+                          color='forestgreen', linewidth=8, alpha=0.7)
+  # B) Barras de OCUPACIÓN
+  ax_gantt_srv.hlines(y=historial['ID_server'], 
+                      xmin=historial['T_init_service'], 
+                      xmax=historial['T_out'], 
+                      color='red', linewidth=8, label='Ocupado')
+  ax_gantt_srv.set_xlabel('Tiempo')
+  ax_gantt_srv.set_ylabel('Servidor')
+  ax_gantt_srv.set_title('Ocupación Servidores')
+  ax_gantt_srv.set_yticks(unique_servers)
+  ax_gantt_srv.grid(True, alpha=0.3, axis='x')
+  custom_lines = [Line2D([0], [0], color='forestgreen', lw=4, alpha=0.7),
+                  Line2D([0], [0], color='red', lw=4)]
+
+  # ==========================================================================
+  # 5. CLIENTES EN SISTEMA (DERECHA ABAJO 1)
+  # ==========================================================================
+  sns.countplot(y='N_system', data=historial, stat='percent', ax=ax_nsystem, 
+                color="skyblue") 
+  ax_nsystem.set_ylabel('Clientes en el sistema')
+  ax_nsystem.set_xlabel('% Frecuencia')
+  ax_nsystem.set_title('Estado del Sistema al llegar nuevo cliente')
+  if not historial.empty:
+      max_sys = int(max(historial['N_system']))
+      ax_nsystem.set_yticks(np.arange(0, max_sys + 1, 1))
+      for container in ax_nsystem.containers:
+          ax_nsystem.bar_label(container, fmt='%.1f%%', padding=3, fontsize=9)
+
+  # ==========================================================================
+  # 6. CLIENTES EN COLA (DERECHA ABAJO 2)
+  # ==========================================================================
+  sns.countplot(y='N_queue', data=historial, stat='percent', ax=ax_nqueue, 
+                color="salmon")
+  ax_nqueue.set_ylabel('Clientes en la cola')
+  ax_nqueue.set_xlabel('% Frecuencia')
+  ax_nqueue.set_title('Estado de la Cola al llegar nuevo cliente')
+  if not historial.empty:
+      max_queue = int(max(historial['N_queue']))
+      ax_nqueue.set_yticks(np.arange(0, max_queue + 1, 1))
+      for container in ax_nqueue.containers:
+          ax_nqueue.bar_label(container, fmt='%.1f%%', padding=3, fontsize=9)
+
+  plt.show()
