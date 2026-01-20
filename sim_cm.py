@@ -778,7 +778,7 @@ def system_MMinf(tasa_arrival, tasa_service, tiempo):
         * n_system (clientes en el sistema en el instante en que el cliente accede al sistema)
         * t_system (tiempo que el cliente pasa en el sistema)
     """
-
+    import simpy
     # Lista para guardar los datos
     simula = []
 
