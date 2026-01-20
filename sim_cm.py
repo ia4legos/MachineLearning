@@ -1388,7 +1388,7 @@ def get_stats_MMsK(historial, servidores, tiempo):
     
     return resumen
 
-def MC_MMs(tasa_arrival, tasa_service, tiempo, servers, K, nsims):
+def MC_MMsK(tasa_arrival, tasa_service, tiempo, servers, K, nsims):
     # 1. Contenedor temporal para los resultados
     # Usamos una lista en lugar de un DataFrame pre-definido para flexibilidad
     resultados_acumulados = []
