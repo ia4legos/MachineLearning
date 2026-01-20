@@ -369,13 +369,172 @@ class CMTC:
         return resultados
 
 
+def system_MMs(tasa_arrival, tasa_service, tiempo, servers):
+    """
+    Simulador simpy del sistema M/M/s
+
+    Parámetros de entrada:
+    - tasa_arrival: Tasa de llegadas de clientes (clientes/ut)
+    - tasa_service: Tasa de servicio de clientes (clientes/ut)
+    - tiempo: Tiempo total de simulación (ut)
+    - severs: Número de servidores
+
+    Devuelve:
+      Dataframe con el historial de simulación de cada cliente con columnas
+        * ID_customer (identificador del cliente)
+        * ID_server (identificador del servidor)
+        * T_in (instante de tiempo en que el cliente accede al sistema)
+        * T_init_service (instante de tiempo en que el cliente entra en servicio)
+        * T_service (tiempo que el cliente tarda en ser servido)
+        * T_out (instante de tiempo en que el cliente sale al sistema)
+        * n_system (clientes en el sistema en el instante en que el cliente accede al sistema)
+        * n_queue (clientes en la cola en el instante en que el cliente accede al sistema)
+        * t_system (tiempo que el cliente pasa en el sistema)
+        * t_queue (tiempo que el cliente pasa en la cola)
+    """
+
+    # 1. LISTA DE REGISTRO:
+    # Aquí iremos guardando una tupla con los datos de cada cliente que termine su servicio.
+    # Al final, esta lista se convertirá en el DataFrame.
+    simula = []
+
+    # 2. IDENTIFICADORES DE SERVIDORES:
+    # Crea una lista simple [1, 2, ..., s] para ponerle una "etiqueta" al servidor.
+    # Nota: Esto es puramente estético para el reporte, SimPy gestiona los recursos internamente.
+    server_ids = list(range(1, servers + 1))
+
+    # Clase para rerpesentar el comportamiento del cliente cuando accede al sistema
+    class Servicio:
+        # Constructor: Recibe el entorno de simulación, ID del cliente y el recurso (servidores)
+        def __init__(self, env, id_cliente, servidor, server_id):
+            self.env = env
+            self.id_cliente = id_cliente
+            self.servidor = servidor
+            self.server_id = server_id
+
+        # MËTODO PRINCIPAL DEL CLIENTE
+        def servicio(self):
+            # Paso 1: FOTO DE LLEGADA
+            # Guardamos el tiempo exacto en que el cliente "aparece" en el sistema.
+            t_arr = self.env.now
+
+            # Paso 2: ESTADÍSTICAS DEL ESTADO ACTUAL
+            # Antes de entrar, miramos cuánta gente hay ya.
+            # servidor.queue: Lista de procesos esperando.
+            # servidor.count: Número de servidores ocupados actualmente.
+            cola = len(self.servidor.queue)
+            servidos = self.servidor.count
+            sistema = cola + servidos 
+
+            # Paso 3: SOLICITUD DE RECURSO (Entrar a la cola/servidor)
+            # 'self.servidor.request()' intenta ocupar un servidor.
+            # Si hay sitio (count < servers), entra inmediatamente.
+            # Si NO hay sitio, el proceso se congela aquí (yield) hasta que se libere uno.
+            with self.servidor.request() as solicitud:
+                yield solicitud  # <--- Aquí ocurre la espera en cola si es necesario.
+
+                # --- A PARTIR DE AQUÍ EL CLIENTE YA ESTÁ SIENDO ATENDIDO ---
+
+                # Asignamos el ID del servidor (lógica definida en la llamada).
+                id_servidor = self.server_id
+
+                # Paso 4: INICIO DE SERVICIO
+                # Guardamos el tiempo exacto en que dejó de esperar y empezó a ser atendido.
+                t_ini = self.env.now
+
+                # Paso 5: DURACIÓN DEL SERVICIO
+                # Calculamos cuánto tardará, basado en una distribución exponencial.
+                t_service = random.expovariate(tasa_service)
+
+                # Paso 6: PROCESO DE ATENCIÓN
+                # 'yield env.timeout(t_service)' le dice al simulador:
+                # "Mantén este servidor ocupado durante 't_service' unidades de tiempo".
+                yield env.timeout(t_service)
+
+                # Paso 7: SALIDA
+                # El cliente ha terminado. Guardamos el tiempo final.
+                t_out = self.env.now
+
+                # Paso 8: GUARDADO DE DATOS
+                # Calculamos tiempos de estancia (salida - llegada) y espera (inicio - llegada).
+                # Todo se mete en la lista 'simula'.
+                simula.append((self.id_cliente,
+                               self.server_id,
+                               t_arr,
+                               t_ini,
+                               t_service,
+                               t_out,
+                               t_out-t_arr,     # Tiempo total en sistema (W)
+                               t_ini-t_arr,     # Tiempo en cola (Wq)
+                               sistema,         # N total al llegar
+                               cola))           # N cola al llegar
+
+        def llegada_clientes(env, tasa_arrival):
+            id_cliente = 1  # Contador para dar ID único a cada cliente
+            server_id = 1   # Contador auxiliar para asignar servidor (rotativo)
+
+            while True:
+              # Paso A: TIEMPO ENTRE LLEGADAS
+              # Calculamos cuánto tiempo pasará hasta que llegue el siguiente cliente.
+              tiempo_entre_llegadas = random.expovariate(tasa_arrival)
+
+              # Paso B: ESPERA HASTA LA LLEGADA
+              # Detiene la creación de clientes durante ese tiempo aleatorio.
+              yield env.timeout(tiempo_entre_llegadas)
+
+              # Paso C: LÓGICA DE ASIGNACIÓN DE SERVIDOR (Rotativo)
+              # Intenta asignar un ID de servidor 1, 2, ... s, 1, 2...
+              # Nota: Esto es una etiqueta visual, SimPy asignará el primer recurso libre real.
+              server_id = server_ids[(id_cliente+1) % servers]
+
+              # Paso D: CREACIÓN DEL OBJETO CLIENTE
+              # Instanciamos la clase Servicio con los datos actuales.
+              cliente = Servicio(env, id_cliente, servidor, server_id)
+
+              # Contadores para la siguiente vuelta
+              id_cliente += 1
+              server_id += 1 
+
+              # Paso E: INICIO DEL PROCESO DEL CLIENTE
+              # Le decimos al entorno: "Arranca el método servicio() de este nuevo cliente".
+              # Esto corre en paralelo (async) con el resto de la simulación.
+              env.process(cliente.servicio())
+
+    # 1. CREAR ENTORNO
+    # El cerebro de la simulación que maneja el reloj (env.now).
+    env = simpy.Environment()
+
+    # 2. CREAR RECURSO (SERVIDORES)
+    # Definimos que hay una capacidad limitada ('servers').
+    # Si llegan más de 'servers' clientes, SimPy gestiona la cola automáticamente.
+    servidor = simpy.Resource(env, capacity = servers)
+
+    # 3. ACTIVAR EL GENERADOR
+    # Iniciamos el proceso que crea clientes. Sin esto, la simulación estaría vacía.
+    env.process(llegada_clientes(env, tasa_arrival))
+
+    # 4. EJECUTAR
+    # Corre la simulación hasta que el reloj interno llegue a 'tiempo'.
+    env.run(until = tiempo)
+
+    # 5. PROCESAR RESULTADOS
+    # Convertimos la lista de tuplas en un DataFrame legible.
+    df = pd.DataFrame(simula, columns=['ID_customer', 'ID_server', 'T_in', 'T_init_service', 'T_service', 'T_out', 'T_system', 'T_queue','N_system', 'N_queue'])
+    
+    # Ordenamos por ID de cliente para que la tabla se vea ordenada 1, 2, 3...
+    df = df.sort_values(by = ["ID_customer"])
+
+    return df              
+
+
+
+
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import seaborn as sns
 import numpy as np
 from matplotlib.lines import Line2D
 import warnings
-
 # Filtramos advertencias menores por si acaso alguna versión diferente de librería protesta
 warnings.filterwarnings("ignore")
 
