@@ -1139,3 +1139,187 @@ def system_MMsK(tasa_arrival, tasa_service, tiempo, servers, K):
         df = df.iloc[:corte, :]
 
     return df
+
+import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
+import seaborn as sns
+import numpy as np
+from matplotlib.lines import Line2D
+
+def plot_historial_MMsK(historial):
+    """
+    Función para representar el historial de simulación del sistema M/M/s/K
+    
+    Incluye gráfico de Tasa de Aceptación (Aceptados vs Rechazados).
+    """
+    
+    # 1. Tamaño de la figura
+    fig = plt.figure(figsize=(22, 12)) 
+    
+    # --- ESTRUCTURA DE LA REJILLA (GRID) ---
+    # Dividimos en Izquierda (Gantt grande) y Derecha (Estadísticas)
+    gs_main = gridspec.GridSpec(1, 2, figure=fig, width_ratios=[1, 2.2], wspace=0.15)
+    
+    # Sub-grid Derecha: Arriba (3 gráficos) y Abajo (AHORA 3 GRÁFICOS)
+    gs_right = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec=gs_main[1], 
+                                                height_ratios=[1, 1], hspace=0.4)
+    
+    # Fila Derecha Arriba: 3 columnas
+    gs_right_top = gridspec.GridSpecFromSubplotSpec(1, 3, subplot_spec=gs_right[0], wspace=0.3)
+    
+    # Fila Derecha Abajo: 3 columnas (ANTES ERAN 2) <--- CAMBIO AQUÍ
+    gs_right_bot = gridspec.GridSpecFromSubplotSpec(1, 3, subplot_spec=gs_right[1], wspace=0.3)
+
+    # --- CREACIÓN DE LOS EJES ---
+    ax_gantt_cli = fig.add_subplot(gs_main[0])          
+    ax_tservice  = fig.add_subplot(gs_right_top[0])      
+    ax_compare   = fig.add_subplot(gs_right_top[1])      
+    ax_gantt_srv = fig.add_subplot(gs_right_top[2])      
+    
+    ax_nsystem   = fig.add_subplot(gs_right_bot[0])      
+    ax_nqueue    = fig.add_subplot(gs_right_bot[1])      
+    ax_accepted  = fig.add_subplot(gs_right_bot[2])  
+
+    # ==========================================================================
+    # 1. GANTT CLIENTES (IZQUIERDA)
+    # ==========================================================================
+    # Filtramos solo los aceptados para el Gantt (los rechazados tienen NaN en tiempos)
+    df_gantt = historial[historial['Accepted'] == 1]
+    
+    ax_gantt_cli.hlines(y=df_gantt['ID_customer'], 
+               xmin=df_gantt['T_in'], 
+               xmax=df_gantt['T_out'], 
+               color='limegreen', linewidth=3, label='Permanencia en el sistema')
+    
+    # Marcamos inicio de servicio (solo si no es NaN)
+    ax_gantt_cli.scatter(x=df_gantt['T_init_service'], 
+                y=df_gantt['ID_customer'], 
+                color='red', s=50, zorder=3, marker='|', linewidth=2, label='Inicio Servicio')
+    
+    ax_gantt_cli.set_xlabel('Tiempo de simulación')
+    ax_gantt_cli.set_ylabel('ID Cliente')
+    ax_gantt_cli.set_title('Cronograma de Clientes (Gantt)')
+    ax_gantt_cli.legend(loc='upper left', fontsize='small')
+    ax_gantt_cli.grid(True, alpha=0.3, axis='x')
+
+    # ==========================================================================
+    # 2. DISTRIBUCIÓN T. SERVICIO (DERECHA ARRIBA 1)
+    # ==========================================================================
+    # Solo consideramos datos válidos (Aceptados)
+    df_valid = historial[historial['Accepted'] == 1]
+    
+    sns.boxplot(x='ID_server', y='T_service', hue='ID_server', data=df_valid, 
+                ax=ax_tservice, palette='Blues', legend=False)
+    ax_tservice.set_xlabel('Servidor')
+    ax_tservice.set_ylabel('Tiempo')
+    ax_tservice.set_title('Distribución T. Servicio')
+
+    # ==========================================================================
+    # 3. COMPARATIVA DE TIEMPOS (DERECHA ARRIBA 2)
+    # ==========================================================================
+    data_cajas = df_valid[['T_system', 'T_queue', 'T_service']].copy()
+    data_cajas.columns = ['Sistema', 'Cola', 'Servicio']
+    sns.boxplot(data=data_cajas, orient='h', ax=ax_compare, palette="Set2")
+    ax_compare.set_xlabel('Tiempo')
+    ax_compare.set_title('Comparativa Tiempos')
+    ax_compare.grid(True, alpha=0.3, axis='x')
+
+    # ==========================================================================
+    # 4. GANTT SERVIDORES (DERECHA ARRIBA 3)
+    # ==========================================================================
+    if not df_valid.empty:
+        max_tiempo = historial['T_out'].max()
+        unique_servers = sorted(df_valid['ID_server'].unique())
+        # Filtramos servidor 0 si aparece (por rechazados)
+        unique_servers = [s for s in unique_servers if s != 0]
+
+        # A) Barra de DISPONIBILIDAD
+        for srv in unique_servers:
+            ax_gantt_srv.hlines(y=srv, xmin=0, xmax=max_tiempo, 
+                                color='forestgreen', linewidth=8, alpha=0.7)
+        # B) Barras de OCUPACIÓN
+        ax_gantt_srv.hlines(y=df_valid['ID_server'], 
+                            xmin=df_valid['T_init_service'], 
+                            xmax=df_valid['T_out'], 
+                            color='red', linewidth=8, label='Ocupado')
+        
+        ax_gantt_srv.set_yticks(unique_servers)
+    
+    ax_gantt_srv.set_xlabel('Tiempo')
+    ax_gantt_srv.set_ylabel('Servidor')
+    ax_gantt_srv.set_title('Ocupación Servidores')
+    ax_gantt_srv.grid(True, alpha=0.3, axis='x')
+
+    # ==========================================================================
+    # 5. CLIENTES EN SISTEMA (DERECHA ABAJO 1)
+    # ==========================================================================
+    sns.countplot(y='N_system', data=historial, stat='percent', ax=ax_nsystem, 
+                  color="skyblue") 
+    ax_nsystem.set_ylabel('Clientes en el sistema')
+    ax_nsystem.set_xlabel('% Frecuencia')
+    ax_nsystem.set_title('Estado del Sistema (Llegada)')
+    
+    if not historial.empty:
+        max_sys = int(max(historial['N_system']))
+        # Limitamos los ticks si hay muchos estados para que no se empasten
+        if max_sys < 20:
+            ax_nsystem.set_yticks(np.arange(0, max_sys + 1, 1))
+        
+        for container in ax_nsystem.containers:
+            ax_nsystem.bar_label(container, fmt='%.1f%%', padding=3, fontsize=9)
+
+    # ==========================================================================
+    # 6. CLIENTES EN COLA (DERECHA ABAJO 2)
+    # ==========================================================================
+    sns.countplot(y='N_queue', data=historial, stat='percent', ax=ax_nqueue, 
+                  color="salmon")
+    ax_nqueue.set_ylabel('Clientes en la cola')
+    ax_nqueue.set_xlabel('% Frecuencia')
+    ax_nqueue.set_title('Estado de la Cola (Llegada)')
+    
+    if not historial.empty:
+        max_queue = int(max(historial['N_queue']))
+        if max_queue < 20:
+            ax_nqueue.set_yticks(np.arange(0, max_queue + 1, 1))
+            
+        for container in ax_nqueue.containers:
+            ax_nqueue.bar_label(container, fmt='%.1f%%', padding=3, fontsize=9)
+
+    # ==========================================================================
+    # 7. TASA DE ACEPTACIÓN (DERECHA ABAJO 3) - NUEVO GRÁFICO
+    # ==========================================================================
+    # Usamos x='Accepted' para barras verticales.
+    # Definimos paleta manual: 0=Rojo (Rechazo), 1=Verde (Aceptado)
+    colores_aceptacion = {0: "#FF6B6B", 1: "#51CF66"} # Rojo suave y Verde suave
+    
+    # Verificamos si la columna existe (por seguridad)
+    if 'Accepted' in historial.columns:
+        sns.countplot(x='Accepted', data=historial, stat='percent', ax=ax_accepted, 
+                      palette=colores_aceptacion, hue='Accepted', legend=False)
+        
+        ax_accepted.set_title('Tasa de Aceptación')
+        ax_accepted.set_xlabel('Estado')
+        ax_accepted.set_ylabel('% Frecuencia')
+        
+        # Cambiamos etiquetas del eje X (0 -> Rechazado, 1 -> Aceptado)
+        ax_accepted.set_xticks([0, 1])
+        # Filtramos para asegurarnos de que las etiquetas coincidan con los datos presentes
+        etiquetas = []
+        unique_vals = sorted(historial['Accepted'].unique())
+        for val in unique_vals:
+            if val == 0: etiquetas.append('Rechazado')
+            if val == 1: etiquetas.append('Aceptado')
+        ax_accepted.set_xticklabels(etiquetas)
+
+        # Añadimos porcentajes encima de las barras
+        for container in ax_accepted.containers:
+            ax_accepted.bar_label(container, fmt='%.1f%%', padding=3, fontsize=10, weight='bold')
+        
+        # Ajustamos límite superior para que quepa el texto
+        ax_accepted.set_ylim(0, 115)
+        ax_accepted.grid(axis='y', linestyle=':', alpha=0.3)
+    else:
+        ax_accepted.text(0.5, 0.5, "Columna 'Accepted' no encontrada", 
+                         ha='center', va='center')
+
+    plt.show()
