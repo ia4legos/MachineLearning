@@ -830,3 +830,158 @@ def system_MMinf(tasa_arrival, tasa_service, tiempo):
     df = df.sort_values(by='T_in').reset_index(drop=True)
     
     return df
+
+def plot_historial_MMinf(historial):
+    """
+    Visualización gráfica específica para M/M/inf:
+    1. Cronograma de estancias (Gantt).
+    2. Boxplot de Tiempos de Sistema (Estancia).
+    3. Frecuencia de estados del sistema (N) con porcentajes.
+    """
+    
+    # Configuración del lienzo
+    fig = plt.figure(figsize=(10, 8))
+    gs = fig.add_gridspec(2, 2)
+
+    # Definición de los ejes
+    ax1 = fig.add_subplot(gs[0, :]) # Fila superior completa
+    ax2 = fig.add_subplot(gs[1, 0]) # Abajo Izquierda
+    ax3 = fig.add_subplot(gs[1, 1]) # Abajo Derecha
+
+    # ---------------------------------------------------------
+    # GRÁFICO 1: Cronograma (Gantt)
+    # ---------------------------------------------------------
+    ax1.hlines(y=historial['ID_customer'], 
+               xmin=historial['T_in'], 
+               xmax=historial['T_out'], 
+               color='green', alpha=0.6, linewidth=3, label='En Servicio')
+    
+    ax1.set_title('Cronograma de Clientes - Sistema $M/M/\infty$')
+    ax1.set_xlabel('Tiempo de Simulación')
+    ax1.set_ylabel('ID Cliente')
+    ax1.grid(True, linestyle='--', alpha=0.5)
+    
+    if not historial.empty:
+        ax1.set_ylim(0, historial['ID_customer'].max() + 1)
+        ax1.set_xlim(0, historial['T_out'].max() * 1.05)
+
+    # ---------------------------------------------------------
+    # GRÁFICO 2: Histograma (T_system) 
+    # ---------------------------------------------------------
+    # Usamos un histograma para ver la forma de la distribución
+    # 'bins='auto'' deja que matplotlib decida el ancho óptimo de las barras
+    ax2.hist(historial['T_system'], bins='auto', color='steelblue', edgecolor='steelblue', alpha=0.7)
+    
+    ax2.set_title('Histograma de Tiempos en el Sistema ($W$)')
+    ax2.set_xlabel('Tiempo (ut)')
+    ax2.set_ylabel('Frecuencia')
+    ax2.grid(axis='y', linestyle=':', alpha=0.5)
+
+    # ---------------------------------------------------------
+    # GRAFICO 3: Frecuencias de N_system 
+    # ---------------------------------------------------------
+    # 1. Obtenemos las frecuencias absolutas (Conteo puro)
+    conteo_estados = historial['N_system'].value_counts().sort_index()
+    total_obs = conteo_estados.sum()
+    
+    # 2. Dibujamos las barras usando el conteo
+    barras = ax3.bar(conteo_estados.index, conteo_estados.values, 
+                     color='orange', alpha=0.7, edgecolor='black')
+    
+    ax3.set_title('Número de clientes en el sistema al llegar un nuevo cliente')
+    ax3.set_xlabel('Clientes')
+    ax3.set_ylabel('Porcentaje')
+    
+    # 3. Añadimos los porcentajes encima de cada barra
+    # Aumentamos un poco el límite Y para que quepa el texto
+    if not conteo_estados.empty:
+        ax3.set_ylim(0, max(conteo_estados.values) * 1.15)
+        
+        for barra in barras:
+            height = barra.get_height()
+            percentage = (height / total_obs) * 100
+            ax3.text(barra.get_x() + barra.get_width() / 2, height, 
+                     f'{percentage:.1f}%', 
+                     ha='center', va='bottom', fontsize=9, color='black')
+
+    # Ajustamos eje X para mostrar enteros
+    if len(conteo_estados) < 20:
+        ax3.set_xticks(conteo_estados.index)
+        
+    ax3.grid(axis='y', linestyle=':', alpha=0.5)
+
+    plt.tight_layout()
+    plt.show()
+
+
+def get_stats_MMinf(historial, tiempo):
+    """
+    Función para obtener medidas de eficiencia del sistema M/M/inf.
+    
+    Argumentos:
+     historial: Dataframe con columnas 'T_in', 'T_out', 'T_system', etc.
+     tiempo: Tiempo total de simulación (ut)
+    
+    Devuelve:
+     Clientes: clientes que han finalizado el servicio 
+     L: promedio de clientes en el sistema
+     W: promedio de tiempo en el sistema
+     perc_inactivo: porcentaje de tiempo que el sistema no tiene clientes
+    """
+    # 1. Medidas Básicas
+    clientes = historial.shape[0]
+    
+    if clientes == 0:
+        return pd.DataFrame({'Mensaje': ['Sin clientes procesados']}).T
+
+    L = historial['N_system'].mean()   # Promedio clientes (simulado)
+    W = historial['T_system'].mean()   # Tiempo promedio en sistema
+
+    # 2. CÁLCULO DE TIEMPO VACÍO (% Inactivo)
+    # El sistema está ocupado si hay AL MENOS una persona.
+    # Como los clientes se solapan, unimos los intervalos [T_in, T_out].
+    
+    # a) Ordenamos por llegada
+    df_sorted = historial.sort_values('T_in')
+    # b) Algoritmo de fusión de intervalos (Merge Intervals)
+    busy_intervals = []
+    # Iteramos sobre cada cliente
+    for _, row in df_sorted.iterrows():
+        start, end = row['T_in'], row['T_out']
+        
+        if not busy_intervals:
+            # Primer intervalo
+            busy_intervals.append([start, end])
+        else:
+            # Comparamos con el último intervalo guardado
+            last_start, last_end = busy_intervals[-1]
+            
+            if start < last_end:
+                # Si hay solape, extendemos el final si es necesario
+                busy_intervals[-1][1] = max(last_end, end)
+            else:
+                # No hay solape (hubo un hueco), añadimos nuevo intervalo
+                busy_intervals.append([start, end])
+    
+    # c) Sumamos la duración de los intervalos de ocupación
+    tiempo_ocupado_total = sum(end - start for start, end in busy_intervals)
+    # d) Calculamos el tiempo vacío
+    tiempo_vacio = tiempo - tiempo_ocupado_total
+    # Aseguramos que no sea negativo (por si la simulación se pasó un poco del límite)
+    tiempo_vacio = max(0, tiempo_vacio)
+    
+    perc_inactivo = (tiempo_vacio / tiempo) * 100
+
+    # ---------------------------------------------------------------
+    # 3. CREACIÓN DEL DATAFRAME
+    # ---------------------------------------------------------------
+    dict_stats = {
+        'Clientes': round(clientes, 0),
+        'L': round(L, 2),
+        'W': round(W, 2),
+        '% Inactivo (Vacío)': round(perc_inactivo, 2)
+    }
+    
+    resumen = pd.DataFrame(dict_stats, index=['Sistema'])
+    
+    return resumen
