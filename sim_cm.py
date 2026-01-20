@@ -392,7 +392,7 @@ def system_MMs(tasa_arrival, tasa_service, tiempo, servers):
         * t_system (tiempo que el cliente pasa en el sistema)
         * t_queue (tiempo que el cliente pasa en la cola)
     """
-
+    import simpy
     # 1. LISTA DE REGISTRO:
     # Aquí iremos guardando una tupla con los datos de cada cliente que termine su servicio.
     # Al final, esta lista se convertirá en el DataFrame.
