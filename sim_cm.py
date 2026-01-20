@@ -1323,3 +1323,67 @@ def plot_historial_MMsK(historial):
                          ha='center', va='center')
 
     plt.show()
+
+def get_stats_MMsK(historial, servidores, tiempo):
+    """
+    Función para obtener medidas de eficiencia del sistema, incluyendo Tasa de Rechazo.
+    """
+    # 1. Medidas Básicas
+    clientes = historial.shape[0]
+    
+    # Prevenimos errores si el historial está vacío
+    if clientes == 0:
+        return pd.DataFrame({'Mensaje': ['Sin clientes procesados']}).T
+
+    L = historial['N_system'].mean()  # Promedio clientes en sistema
+    Lq = historial['N_queue'].mean()  # Promedio clientes en cola
+    W = historial['T_system'].mean()  # Tiempo promedio en sistema (ignora NaNs de rechazados)
+    Wq = historial['T_queue'].mean()  # Tiempo promedio en cola
+    
+    # % Tiempo en cola respecto al sistema
+    perc_tq = (Wq / W * 100) if (W > 0 and not np.isnan(W)) else 0
+
+    # ---------------------------------------------------------------
+    # 2. CÁLCULO DE RECHAZOS (NUEVO)
+    # ---------------------------------------------------------------
+    perc_rechazo = 0.0
+    if 'Accepted' in historial.columns:
+        # Contamos cuántos tienen valor 0
+        num_rechazados = len(historial[historial['Accepted'] == 0])
+        perc_rechazo = (num_rechazados / clientes) * 100
+
+    # ---------------------------------------------------------------
+    # 3. CÁLCULO DE OCUPACIÓN GLOBAL (% so)
+    # ---------------------------------------------------------------
+    # Suma todos los tiempos de servicio (NaN se tratan como 0 en sum())
+    total_service_time = historial['T_service'].sum()
+    
+    capacity_total = servidores * tiempo
+    perc_so = (total_service_time / capacity_total) * 100
+
+    # ---------------------------------------------------------------
+    # 4. OCUPACIÓN POR CADA SERVIDOR
+    # ---------------------------------------------------------------
+    usage_per_server = historial.groupby('ID_server')['T_service'].sum()
+    
+    dict_stats = {
+        'Clientes': round(clientes, 0),
+        'L': round(L, 2),
+        'Lq': round(Lq, 2),
+        'W': round(W, 2),
+        'Wq': round(Wq, 2),
+        '% tq (Cola/Total)': round(perc_tq, 2),
+        '% so (Ocupación Global)': round(perc_so, 2),
+        '% Rechazados': round(perc_rechazo, 2)  # <--- NUEVA MÉTRICA
+    }
+
+    # Desglose por servidor individual
+    for s in range(1, servidores + 1):
+        t_trabajado = usage_per_server.get(s, 0) 
+        ocupacion_individual = (t_trabajado / tiempo) * 100
+        dict_stats[f'% Ocupación S{s}'] = round(ocupacion_individual, 2)
+
+    # 5. Crear DataFrame final
+    resumen = pd.DataFrame(dict_stats, index=['Sistema'])
+    
+    return resumen
