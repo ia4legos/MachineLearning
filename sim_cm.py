@@ -1465,7 +1465,7 @@ def simular_ITV(tasa_llegadas, tasa_servicio, servidores, tiempo):
 
   # Define the simulation environment
   env = simpy.Environment()
-
+  results =[]  
   # Definimos los recursos de cada estación
   servers1 = servidores[0]; servers2 = servidores[1]; servers3 = servidores[2]
   station1 = simpy.Resource(env, capacity = servers1)
