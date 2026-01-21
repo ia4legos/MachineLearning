@@ -1829,4 +1829,147 @@ def simular_planta2(tasa_llegadas, tasa_servicio, tiempo_transporte, servidores,
   # Visualización del dataframe
   return df
 
-    
+
+def simular_planta3(tasa_llegadas, tiempos, prob_rechazo, tiempo):
+  """
+  Función para simular el comportamiento de la planta de producción 3
+
+  Parámetros de entrada:
+  - tasa_llegadas: Tasa de llegadas de piezas al sistema
+  - tiempos: Diccionario con los tiempos de servicio y transporte para cada estación
+  - tiempo: Tiempo total de simulación
+
+  Devuelve:
+  - df: DataFrame con los resultados de la simulación y columnas:
+    * Material ID: ID del material
+    * Estación: Estación en la que se encuentra el material
+    * Tin: Tiempo de llegada a la estación
+    * Tinit_service: Tiempo de inicio del servicio en la estación
+    * Tout: Tiempo de salida de la estación
+    * Tsystem: Tiempo de permanencia en el sistema
+    * Tqueue: Tiempo de permanencia en la cola
+    * Nsystem: Número de clientes en el sistema
+    * Nqueue: Número de clientes en la cola
+  """
+
+  # Dataframe de resultados de la simulación
+  results = []
+  # Define the simulation environment
+  env = simpy.Environment()
+
+  # Definimos los recursos de cada estación
+  # Asumiendo capacidad infinita para todas las estaciones
+  # excepto el horno que procesa lotes de 10
+  resources = {
+    'Entrada Bodega': simpy.Resource(env, capacity=float('inf')),
+    'Cortadora': simpy.Resource(env, capacity=float('inf')),
+    'Torno': simpy.Resource(env, capacity=float('inf')),
+    'Molino': simpy.Resource(env, capacity=float('inf')),
+    'Inspección': simpy.Resource(env, capacity=float('inf')),
+    'Horno': simpy.Resource(env, capacity=1),  # Capacidad 1 para procesar lotes
+    'Salida Bodega': simpy.Resource(env, capacity=float('inf'))
+  }
+
+  #### B1. Inicialización de tiempos del sistema  #####
+  #####################################################
+
+  # Clase para la incialización de tiempos en el sistema de cada llegada
+  class Material:
+    def __init__(self, id):
+        self.id = id
+        self.tiempos = {estacion: {'tarr': 0, 'tini': 0, 'tout': 0}
+                        for estacion in resources}
+        self.rechazada = False
+
+  #### B2. Funcionamiento por el sitema  #####
+  ############################################
+
+  # Función para simular los datos de una estación
+  def simular_estacion(env, material, estacion):
+    resource = resources[estacion]
+    # Tiempo de llegada a la estación
+    material.tiempos[estacion]['tarr'] = env.now
+    with resource.request() as req:
+        # Número de clientes en el sistema y en la cola
+        nsystem = len(resource.queue) + resource.count
+        nqueue = len(resource.queue)
+        yield req
+        # Tiempo de inicio del servicio
+        material.tiempos[estacion]['tini'] = env.now
+        # Tiempo de servicio
+        yield env.timeout(tiempos[estacion]['servicio'])
+    # Tiempo de salida de la estación
+    material.tiempos[estacion]['tout'] = env.now
+
+    # Guardar datos de la estación
+    results.append([material.id, estacion,
+                    material.tiempos[estacion]['tarr'],
+                    material.tiempos[estacion]['tini'],
+                    material.tiempos[estacion]['tout'],
+                    material.tiempos[estacion]['tout'] - material.tiempos[estacion]['tarr'],
+                    material.tiempos[estacion]['tini'] - material.tiempos[estacion]['tarr'],
+                    nsystem, nqueue])
+
+  ## Movimiento por el sistema
+  def servicio(env, material):
+    # Entrada Bodega
+    yield env.process(simular_estacion(env, material, 'Entrada Bodega'))
+    # Transporte a Cortadora
+    yield env.timeout(tiempos['Entrada Bodega']['transporte'])
+    # Cortadora
+    yield env.process(simular_estacion(env, material, 'Cortadora'))
+    # Transporte a Torno (5 piezas)
+    for _ in range(5):
+        yield env.timeout(tiempos['Cortadora']['transporte'])
+        # Torno
+        yield env.process(simular_estacion(env, material, 'Torno'))
+        # Transporte a Molino
+        yield env.timeout(tiempos['Torno']['transporte'])
+        # Molino
+        yield env.process(simular_estacion(env, material, 'Molino'))
+        # Transporte a Inspección
+        yield env.timeout(tiempos['Molino']['transporte'])
+        # Inspección
+        yield env.process(simular_estacion(env, material, 'Inspección'))
+        # Control de calidad
+        if random.random() < prob_rechazo:
+            material.rechazada = True
+            break  # Si es rechazada, se sale del bucle
+        else:
+            # Transporte a Horno si no es rechazada
+            yield env.timeout(tiempos['Inspección']['transporte'])
+    # Horno (lote de 10 piezas - se asume que se esperan)
+    if not material.rechazada:
+        yield env.process(simular_estacion(env, material, 'Horno'))
+        # Transporte a Salida Bodega (5 productos terminados)
+        for _ in range(5):
+            yield env.timeout(tiempos['Horno']['transporte'])
+            # Salida Bodega
+            yield env.process(simular_estacion(env, material, 'Salida Bodega'))
+
+  #### B3. proceso de llegadas al sistema  #####
+  ##############################################
+
+  # Definimos el proceso de llegadas
+  def llegadas(env, simulation_time):
+    material_id = 1
+    while env.now < simulation_time:  # Admit materials until simulation time
+        yield env.timeout(random.expovariate(tasa_llegadas))  # arrivals per minute
+        material = Material(material_id)
+        env.process(servicio(env, material))
+        material_id += 1
+
+  ### Simualción y almacenamiento de resultados ###
+  #################################################
+
+  # Ejecutamos la simulación
+  simulation_time = tiempo
+  env.process(llegadas(env, simulation_time))
+  env.run(until=simulation_time)
+
+  # Dataframe de resultados
+  df = pd.DataFrame(results, columns=['Material ID', 'Estación',
+                                    'Tin', 'Tinit_service', 'Tout', 'Tsystem', 'Tqueue', 'Nsystem', 'Nqueue'])
+  return df
+
+
