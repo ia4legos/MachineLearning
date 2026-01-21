@@ -1972,4 +1972,125 @@ def simular_planta3(tasa_llegadas, tiempos, prob_rechazo, tiempo):
                                     'Tin', 'Tinit_service', 'Tout', 'Tsystem', 'Tqueue', 'Nsystem', 'Nqueue'])
   return df
 
+def simular_control_calidad(tasa_llegadas, tasa_servicio, prob_retorno, servidores, tiempo):
+  """
+  Simula el comportamiento de un sistema de producción con control de calidad.
+
+  Parámetros:
+   - tasa_llegadas (float): Tasa de llegadas de material al sistema.
+   - tasa_servicio (list): Lista de tasas de servicio en cada estación.
+   - prob_retorno (float): Probabilidad de retorno
+   - servidores (list): Lista de números de servidores en cada estación.
+    tiempo (int): Tiempo total de simulación en minutos.
+
+  """
+
+  # Dataframe de resultados de la simulación
+  results = []
+  # Define the simulation environment
+  env = simpy.Environment()
+
+  # Definimos los recursos de cada estación
+  servers1 = servidores[0]; servers2 = servidores[1]; servers3 = servidores[2]
+  station1 = simpy.Resource(env, capacity = servers1)
+  station2 = simpy.Resource(env, capacity = servers2)
+  station3 = simpy.Resource(env, capacity = servers3)
+
+  #### B1. Inicialización de tiempos del sistema  #####
+  #####################################################
+
+  # Clase para la incialización de tiempos en el sistema de cada llegada
+  class Sistema:
+    def __init__(self, id):
+        self.id = id
+        self.station1_tarr = 0
+        self.station1_tini = 0
+        self.station1_tout = 0
+        self.station2_tarr = 0
+        self.station2_tini = 0
+        self.station2_tout = 0
+        self.station3_tarr = 0
+        self.station3_tini = 0
+        self.station3_tout = 0
+
+  #### B2. Funcionamiento por el sitema  #####
+  ############################################
+
+  # Función para simular los datos de una estación
+  def simular_estacion(env, material, station, tasa_servicio, station_name):
+    # Tiempo de llegada a la estación
+    setattr(material, f"{station_name}_tarr", env.now)
+    with station.request() as req:
+        # Número de clientes en el sistema y en la cola
+        nsystem = len(station.queue) + station.count
+        nqueue = len(station.queue)
+        yield req
+        # Tiempo de inicio del servicio
+        setattr(material, f"{station_name}_tini", env.now)
+        # Tiempo de servicio
+        yield env.timeout(random.expovariate(tasa_servicio))
+    # Tiempo de salida de la estación
+    setattr(material, f"{station_name}_tout", env.now)
+    # Guardar datos de la estación
+    return [material.id,
+            getattr(material, f"{station_name}_tarr"),
+            getattr(material, f"{station_name}_tini"),
+            getattr(material, f"{station_name}_tout"),
+            getattr(material, f"{station_name}_tout") - getattr(material, f"{station_name}_tarr"),
+            getattr(material, f"{station_name}_tini") - getattr(material, f"{station_name}_tarr"),
+            nsystem, nqueue]
+
+  ## Movimiento por el sistema
+  def servicio(env, material):
+    # Estación 1
+    station1_data = yield env.process(simular_estacion(env, material, station1, tasa_servicio[0], "station1")) # Get station1 data
+    # Estación 2
+    station2_data = yield env.process(simular_estacion(env, material, station2, tasa_servicio[1], "station2")) # Get station2 data
+    # Estacion 3
+    station3_data = yield env.process(simular_estacion(env, material, station3, tasa_servicio[2], "station3")) # Get station3 data
+
+    # Posible retorno a la estación 1
+    retorno = 0
+    if random.random() < prob_retorno:
+        env.process(servicio(env, material))  # Return to station 1
+        retorno = 1  # Si retorna, cambiamos el valor a 1
+
+    # unimos los resultados de las estaciones
+    results.append(station1_data + station2_data + station3_data+ [retorno])
+
+  #### B3. proceso de llegadas al sistema  #####
+  ##############################################
+
+  # Definimos el proceso de llegadas
+  def llegadas(env, simulation_time):
+    material_id = 1
+    while env.now < simulation_time:  # Admit materials until simulation time
+        yield env.timeout(random.expovariate(tasa_llegadas))  # arrivals per minute
+        material = Sistema(material_id)
+        env.process(servicio(env, material))
+        material_id += 1
+
+  ### Simualción y almacenamiento de resultados ###
+  #################################################
+
+  # Ejecutamos la simulación
+  simulation_time = tiempo  # Define simulation time
+  env.process(llegadas(env, simulation_time))  # Pass simulation time to material_arrival
+  env.run(until=simulation_time)  # Simulate for the defined time
+
+  # Dataframe de resultados
+  df = pd.DataFrame(results, columns=['Material ID',
+                                    'S1_Tin', 'S1_Tinit_service', 'S1_Tout', 'S1_Tsystem', 'S1_Tqueue', 'S1_Nsystem', 'S1_Nqueue',
+                                    'Material ID', 'S2_Tin', 'S2_Tinit_service', 'S2_Tout', 'S2_Tsystem', 'S2_Tqueue', 'S2_Nsystem', 'S2_Nqueue',
+                                    'Material ID', 'S3_Tin', 'S3_Tinit_service', 'S3_Tout', 'S3_Tsystem', 'S3_Tqueue', 'S3_Nsystem', 'S3_Nqueue',
+                                    'Retorno'])
+  df = df.sort_values(by=['S1_Tin'])
+
+  # Tiempos totales en el sistema y en al cola
+  df['System_Time'] = df['S1_Tsystem'] + df['S2_Tsystem'] + df['S3_Tsystem']
+  df['System_Queue_Time'] = df['S1_Tqueue'] + df['S2_Tqueue'] + df['S3_Tqueue']
+  df = df.drop(columns=['Material ID']).reset_index(drop=True) # This will drop all columns named 'Material ID'
+
+  return df
+
 
