@@ -1544,7 +1544,6 @@ def simular_ITV(tasa_llegadas, tasa_servicio, servidores, tiempo):
   #################################################
 
   # Ejecutamos la simulación
-  random.seed(123)
   simulation_time = tiempo  # Define simulation time
   env.process(llegadas(env, simulation_time))  # Pass simulation time to material_arrival
   env.run(until=simulation_time)  # Simulate for the defined time
