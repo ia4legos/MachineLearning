@@ -1561,3 +1561,138 @@ def simular_ITV(tasa_llegadas, tasa_servicio, servidores, tiempo):
   df = df.drop(columns=['Material ID']).reset_index(drop=True) # This will drop all columns named 'Material ID'
 
   return(df)
+
+
+def simular_planta(tasa_llegadas, tasa_servicio, servidores, tiempo):
+  """
+  Función para simular el sistema de planta de producción del ejemplo 2
+
+  Parámetros de entrada:
+  - tasa_llegadas: Tasa de llegadas de clientes (clientes/minuto) al sistema
+  - tasa_servicio: Tasa de servicio de clientes en cada estación (clientes/minuto)
+  - servidores: Número de servidores en cada estación
+  - tiempo: Tiempo de simulación (minutos)
+
+  Devuelve: 
+  - Datframe con las columnas:
+    - 'Si_Tin': instante de tiempo de entrada a la estación i 
+    - 'Si_Tinit_service': instante de tiempo de inicio de servicio en la estación i
+    - 'Si_Tout': instante de tiempo de salida en la estación i 
+    - 'Si_Tsystem': tiempo de permanencia en la estación i
+    - 'Si_Tqueue': tiempo de permanencia en la cola de la estación i
+    - 'Si_Nsystem': número de clientes en el sistema en la estación i cuando accede el nuevo cliente
+    - 'Si_Nqueue': número de clientes en la cola de la estación i cuando accede el nuevo cliente
+    - 'System_Time': tiempo total de permanencia en el sistema
+    - 'System_Queue_Time': tiempo total de permanencia en la cola
+  
+  """
+  import simpy
+
+  # Define the simulation environment
+  env = simpy.Environment()
+  results =[]  
+  # Definimos los recursos de cada estación
+  # Definimos los recursos de cada estación
+  servers1 = 3; servers2 = 3; servers3 = 1; servers4 = 4
+  station1 = simpy.Resource(env, capacity = servers1)
+  station2 = simpy.Resource(env, capacity = servers2)
+  station3 = simpy.Resource(env, capacity = servers3)
+  station4 = simpy.Resource(env, capacity = servers4)
+
+
+  #### B1. Inicialización de tiempos del sistema  #####
+  #####################################################
+
+  # Clase para la incialización de tiempos en el sistema de cada llegada
+  class Sistema:
+    def __init__(self, id):
+        self.id = id
+        self.station1_tarr = 0
+        self.station1_tini = 0
+        self.station1_tout = 0
+        self.station2_tarr = 0
+        self.station2_tini = 0
+        self.station2_tout = 0
+        self.station3_tarr = 0
+        self.station3_tini = 0
+        self.station3_tout = 0
+        self.station4_tarr = 0
+        self.station4_tini = 0
+        self.station4_tout = 0
+
+  #### B2. Funcionamiento por el sitema  #####
+  ############################################
+
+  # Función para simular los datos de una estación
+  def simular_estacion(env, material, station, tasa_servicio, station_name):
+    # Tiempo de llegada a la estación
+    setattr(material, f"{station_name}_tarr", env.now)
+    with station.request() as req:
+        # Número de clientes en el sistema y en la cola
+        nsystem = len(station.queue) + station.count
+        nqueue = len(station.queue)
+        yield req
+        # Tiempo de inicio del servicio
+        setattr(material, f"{station_name}_tini", env.now)
+        # Tiempo de servicio
+        yield env.timeout(random.expovariate(tasa_servicio))
+    # Tiempo de salida de la estación
+    setattr(material, f"{station_name}_tout", env.now)
+    # Guardar datos de la estación
+    return [material.id,
+            getattr(material, f"{station_name}_tarr"),
+            getattr(material, f"{station_name}_tini"),
+            getattr(material, f"{station_name}_tout"),
+            getattr(material, f"{station_name}_tout") - getattr(material, f"{station_name}_tarr"),
+            getattr(material, f"{station_name}_tini") - getattr(material, f"{station_name}_tarr"),
+            nsystem, nqueue]
+
+  ## Movimiento por el sistema
+  def servicio(env, material):
+    # Estación 1
+    station1_data = yield env.process(simular_estacion(env, material, station1, tasa_servicio[0], "station1")) # Get station1 data
+    # Estación 2
+    station2_data = yield env.process(simular_estacion(env, material, station2, tasa_servicio[1], "station2")) # Get station2 data
+    # Estacion 3
+    station3_data = yield env.process(simular_estacion(env, material, station3, tasa_servicio[2], "station3")) # Get station3 data
+    # Estacion 4
+    station4_data = yield env.process(simular_estacion(env, material, station4, tasa_servicio[3], "station4")) # Get station4 data
+
+    # unimos los resultados de las estaciones
+    results.append(station1_data + station2_data + station3_data + station4_data)
+
+  #### B3. proceso de llegadas al sistema  #####
+  ##############################################
+
+  # Definimos el proceso de llegadas
+  def llegadas(env, simulation_time):
+    material_id = 1
+    while env.now < simulation_time:  # Admit materials until simulation time
+        yield env.timeout(random.expovariate(tasa_llegadas))  # arrivals per minute
+        material = Sistema(material_id)
+        env.process(servicio(env, material))
+        material_id += 1
+
+  ### Simualción y almacenamiento de resultados ###
+  #################################################
+
+  # Ejecutamos la simulación
+  simulation_time = tiempo  # Define simulation time
+  env.process(llegadas(env, simulation_time))  # Pass simulation time to material_arrival
+  env.run(until=simulation_time)  # Simulate for the defined time
+
+  # Dataframe de resultados
+
+  df = pd.DataFrame(results, columns=['Material ID',
+                                    'S1_Tin', 'S1_Tinit_service', 'S1_Tout', 'S1_Tsystem', 'S1_Tqueue', 'S1_Nsystem', 'S1_Nqueue',
+                                    'Material ID', 'S2_Tin', 'S2_Tinit_service', 'S2_Tout', 'S2_Tsystem', 'S2_Tqueue', 'S2_Nsystem', 'S2_Nqueue',
+                                    'Material ID', 'S3_Tin', 'S3_Tinit_service', 'S3_Tout', 'S3_Tsystem', 'S3_Tqueue', 'S3_Nsystem', 'S3_Nqueue',
+                                    'Material ID', 'S4_Tin', 'S4_Tinit_service', 'S4_Tout', 'S4_Tsystem', 'S4_Tqueue', 'S4_Nsystem', 'S4_Nqueue'])
+  df = df.sort_values(by=['S1_Tin'])
+
+  # Tiempos totales en el sistema y en al cola
+  df['System_Time'] = df['S1_Tsystem'] + df['S2_Tsystem'] + df['S3_Tsystem']+ df['S4_Tsystem']
+  df['System_Queue_Time'] = df['S1_Tqueue'] + df['S2_Tqueue'] + df['S3_Tqueue'] + df['S4_Tqueue']
+  df = df.drop(columns=['Material ID']).reset_index(drop=True)
+  # Visualización del dataframe
+  return df
