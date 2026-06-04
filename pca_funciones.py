@@ -128,20 +128,37 @@ def biplot_coordenadas(projected, y, hg, wd):
     """
     Representa las coordenadas (scores) de las muestras en las dos primeras componentes,
     coloreadas según la variable objetivo.
+    Asegura que todas las etiquetas del target aparecen en la leyenda.
 
     Parámetros:
     - projected: DataFrame de coordenadas de cada muestra en las CP
-    - y: variable objetivo (Series)
+    - y: variable objetivo (Series o array-like)
     - hg: alto (height) del gráfico
     - wd: aspecto (aspect) del gráfico
     """
     datos = projected.copy()
-    datos['Target'] = np.asarray(y)        # unión robusta por orden (evita desajustes de índice)
+    # Aseguramos que y es una Serie de pandas para un comportamiento consistente
+    if not isinstance(y, pd.Series):
+        y = pd.Series(y)
+    datos['Target'] = y
+
+    # Usamos una paleta estándar como 'tab10' para una mejor distinción de categorías
+    # y gestionamos la leyenda explícitamente.
     g = sns.relplot(data=datos, x="CP1", y="CP2", hue="Target",
-                    palette=_paleta_target(y), height=hg, aspect=wd)
+                    palette='tab10',
+                    height=hg, aspect=wd,
+                    s=50, # Ajustamos el tamaño de los puntos para mejor visibilidad
+                    alpha=0.7) # Añadimos algo de transparencia
+
     g.ax.axvline(x=0, color='r', linestyle='dotted')
     g.ax.axhline(y=0, color='r', linestyle='dotted')
-    g.ax.set_xlabel("Componente 1"); g.ax.set_ylabel("Componente 2")
+    g.ax.set_xlabel("Componente 1")
+    g.ax.set_ylabel("Componente 2")
+    g.set(title="Biplot de Coordenadas (CP1 vs CP2) con todas las categorías de Y")
+
+    # Añadimos la leyenda fuera del área del gráfico para mayor claridad
+    g.add_legend(title='Target', bbox_to_anchor=(1.05, 1), loc='upper left', frameon=True)
+    plt.tight_layout()
     plt.show()
 
 
