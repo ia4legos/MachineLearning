@@ -47,374 +47,6 @@ from xgboost import XGBClassifier, XGBRegressor
 from sklearn.metrics import accuracy_score, precision_score, balanced_accuracy_score, f1_score, recall_score
 from sklearn.metrics import roc_auc_score, roc_curve, classification_report, confusion_matrix, ConfusionMatrixDisplay
 
-# métricas de regresión
-from sklearn.metrics import mean_squared_error, mean_absolute_error, mean_absolute_percentage_error
-
-# Función para el preprocesado de dataframe
-def preprocesar_datos(df, target):
-    """
-    Preprocesa un DataFrame aplicando imputación y escalado a variables numéricas,
-    e imputación y codificación One-Hot a variables categóricas/booleanas.
-
-    Args:
-        df (pd.DataFrame): El DataFrame a preprocesar.
-        target (str): El nombre de la columna objetivo. Si es None preprocesamos sin target
-
-    Returns:
-        pd.DataFrame: El DataFrame preprocesado.
-    """   
-    # Seleccionamos datos de trabajo si tenemos o no el target
-    if target == "None":
-      dfs = df.copy()
-    else:
-      dfs = df.drop(target, axis=1)
-
-    # Identificar tipos de variables
-    numeric_features = dfs.select_dtypes(include=np.number).columns
-    categorical_features = dfs.select_dtypes(include=['object', 'category', 'bool']).columns
-    # Número de cada tipo de variables
-    lnum = len(numeric_features)
-    lcat = len(categorical_features)
-
-    # Crear pipelines para el preprocesado numérico y categórico en función del número de varaibles
-    # de tipo numérico o categórico
-
-    ### Variables de ambos tipos
-    if (lnum > 0) & (lcat >0):
-          # Pipeline para variables numéricas: imputación con mediana y estandarización
-          numeric_transformer = Pipeline(steps=[
-            ('imputer', SimpleImputer(strategy='median')),
-            ('scaler', StandardScaler())
-          ])
-          # Pipeline para variables categóricas: imputación con moda y codificación One-Hot
-          categorical_transformer = Pipeline(steps=[
-            ('imputer', SimpleImputer(strategy='most_frequent')),
-            ('onehot', OneHotEncoder(handle_unknown='ignore', drop='first')) # drop='first' elimina la primera categoría
-           ])
-          # Combinar los preprocesamientos utilizando ColumnTransformer
-          preprocessor = ColumnTransformer(
-            transformers=[
-              ('num', numeric_transformer, numeric_features),
-              ('cat', categorical_transformer, categorical_features)
-           ])
-          # Aplicar el preprocesado al DataFrame
-          df_preprocessed = preprocessor.fit_transform(dfs)
-          # Asignación de nombres de variables
-          cat_feature_names = preprocessor.named_transformers_['cat']['onehot'].get_feature_names_out(categorical_features)
-          all_feature_names = list(numeric_features) + list(cat_feature_names)
-          df_preprocessed = pd.DataFrame(df_preprocessed, columns=all_feature_names, index=df.index)
-
-    ### Variables de tipo numérico sin variables de tipo categórico
-    if (lnum > 0) & (lcat == 0):
-          # Pipeline para variables numéricas: imputación con mediana y estandarización
-          numeric_transformer = Pipeline(steps=[
-            ('imputer', SimpleImputer(strategy='median')),
-            ('scaler', StandardScaler())
-          ])
-           # Combinar los preprocesamientos utilizando ColumnTransformer
-          preprocessor = ColumnTransformer(
-            transformers=[
-              ('num', numeric_transformer, numeric_features)
-           ])
-          # Aplicar el preprocesado al DataFrame
-          df_preprocessed = preprocessor.fit_transform(dfs)
-          # Asignación de nombres de variables
-          all_feature_names = list(numeric_features)
-          df_preprocessed = pd.DataFrame(df_preprocessed, columns=all_feature_names, index=df.index)
-
-    ### Variables de categórico sin varaibles de tipo numérico
-    if (lnum == 0) & (lcat >0):
-          # Pipeline para variables categóricas: imputación con moda y codificación One-Hot
-          categorical_transformer = Pipeline(steps=[
-            ('imputer', SimpleImputer(strategy='most_frequent')),
-            ('onehot', OneHotEncoder(handle_unknown='ignore', drop='first')) # drop='first' elimina la primera categoría
-           ])
-          # Combinar los preprocesamientos utilizando ColumnTransformer
-          preprocessor = ColumnTransformer(
-            transformers=[
-              ('cat', categorical_transformer, categorical_features)
-           ])
-          # Aplicar el preprocesado al DataFrame
-          df_preprocessed = preprocessor.fit_transform(dfs)
-          # Asignación de nombres de variables
-          cat_feature_names = preprocessor.named_transformers_['cat']['onehot'].get_feature_names_out(categorical_features)
-          all_feature_names = list(cat_feature_names)
-          df_preprocessed = pd.DataFrame(df_preprocessed, columns=all_feature_names, index=df.index)
-
-    if target == "None":
-      datos = df_preprocessed.copy()
-    else:
-      datos = pd.concat([df_preprocessed, df[target]], axis=1)
-
-    return datos
-
-# Función para muestreo estratificado por target
-
-def split_sample(df, target, size, semilla, estratificar):
-  """
-  Función para obtener la división de muestras de entrenamiento y test estratificando por un factor.
-
-  Parámetros de entrada:
-  - df: dataframe de datos completo
-  - target: target por el que estratificar
-  - size: porcentaje de la muestra de test
-  - semilla: semilla aleatoria para la división y reproducibilidad
-  - estratificar: boleano que indica si debemos estratificar por el target. 
-  """
-  from sklearn.model_selection import train_test_split
-    
-  X = df.drop(target,axis=1)
-  y = df[target]
-
-  if estratificar == True:
-      print(f"Estratificando por la variable objetivo '{target}' (categórica).")
-      # División de muestras con estratificación
-      X_train, X_test, y_train, y_test= train_test_split(X, y, test_size=size, random_state=semilla, stratify=y)
-  else:
-      print(f"No estratificando por la variable objetivo '{target}' (no categórica).")
-      # División de muestras sin estratificación
-      X_train, X_test, y_train, y_test= train_test_split(X, y, test_size=size, random_state=semilla)
-
-  # Dataframes de entrenamiento y test
-  strain = pd.concat([X_train,y_train],axis=1).reset_index(drop=True)
-  stest = pd.concat([X_test,y_test],axis=1).reset_index(drop=True)
-  return(strain,stest)
-
-# Función para comparar diferentes modelos de clasificación binaria
-
-def comparar_clasificador_2cls(strain, target, sizeval, semilla, models_to_train = None):
-    """
-    Entrena varios modelos de clasificación y devuelve sus métricas de rendimiento.
-
-    Args:
-        strain (pd.DataFrame): Conjunto de entrenamiento.
-        target (str): Nombre de la columna objetivo.
-        sizeval: porcentaje del conjunto de datos que se usa para validación.
-        semilla: semilla de aleatorización
-        models_to_train (list, optional): Lista de nombres de modelos a entrenar.
-                                          Si es None, entrena todos los modelos definidos.
-
-    Returns:
-        pd.DataFrame: DataFrame con las métricas (Precision, Recall, F1) para cada modelo.
-    """
-
-    # Definir los modelos a entrenar (conjunto completo)
-    all_classifiers = {
-        "lr": LogisticRegression(random_state=semilla,solver="saga"),
-        "ridge": RidgeClassifier(random_state=semilla),
-        "lda": LinearDiscriminantAnalysis(),
-        "qda": QuadraticDiscriminantAnalysis(),
-        "nb": GaussianNB(),
-        "knn": KNeighborsClassifier(),
-        "svc": SVC(kernel='linear', random_state=semilla),
-        "rbf": SVC(kernel='rbf', random_state=semilla),
-        "dt": DecisionTreeClassifier(random_state=semilla),
-        "rf": RandomForestClassifier(random_state=semilla),
-        "ada": AdaBoostClassifier(random_state=semilla),
-        "gbc": GradientBoostingClassifier(random_state=semilla),
-        "lightgbm": LGBMClassifier(random_state=semilla, verbose=-1), #verbose=-1 para evitar imprimir info de entrenamiento
-        "xgboost": XGBClassifier(random_state=semilla, eval_metric='logloss') # use_label_encoder=False y eval_metric para evitar warnings
-    }
-
-    # Seleccionar los modelos a entrenar según la lista proporcionada
-    if models_to_train is None:
-        classifiers = all_classifiers
-    else:
-        classifiers = {name: all_classifiers[name] for name in models_to_train if name in all_classifiers}
-        if len(classifiers) != len(models_to_train):
-            print("Advertencia: Algunos nombres de modelos en la lista proporcionada no son válidos.")
-
-    # Dividimos el conjunto entre entrenamiento y validación
-    strain_df, sval_df = split_sample(strain, target, 1-sizeval, semilla, True)
-    # Asignación
-    X_train = strain_df.drop(target, axis=1)
-    y_train = strain_df[target]
-    X_val = sval_df.drop(target, axis=1)
-    y_val = sval_df[target]
-
-    # Entrenamiento y almacenamienyo de métricas
-    results = []
-    for name, clf in classifiers.items():
-        print(f"Entrenando {name}...")
-        try:
-            # Entrenar el modelo
-            clf.fit(X_train, y_train)
-            # Predecir en los datos de entrenamiento para calcular las métricas
-            y_pred = clf.predict(X_val)
-            # Calcular métricas
-            acc = accuracy_score(y_val, y_pred)
-            balanced_acc = balanced_accuracy_score(y_val, y_pred)
-            # Usar average='weighted' para métricas en problemas multiclase
-            precision = precision_score(y_val, y_pred, average='weighted', zero_division=0)
-            recall = recall_score(y_val, y_pred, average='weighted', zero_division=0)
-            f1 = f1_score(y_val, y_pred, average='weighted', zero_division=0)
-            auc = roc_auc_score(y_val, y_pred)
-            results.append({'Algorithm': name, 'Accuracy': acc, 'Balanced_Accuracy': balanced_acc, 'Precision': precision, 'Recall': recall, 'F1': f1, 'AUC': auc})
-
-        except Exception as e:
-            print(f"Error entrenando {name}: {e}")
-            results.append({'Algorithm': name, 'Accuracy': None, 'Balanced_Accuracy': None, 'Precision': precision, 'Recall': None, 'F1-score': None,})
-
-    return pd.DataFrame(results)
-
-# Función para comparar diferentes modelos de clasificación multinomial
-
-def comparar_clasificador_multicls(strain, target, sizeval, semilla, models_to_train = None):
-    """
-    Entrena varios modelos de clasificación multiclase y devuelve sus métricas de rendimiento.
-
-    Args:
-        strain (pd.DataFrame): Conjunto de entrenamiento.
-        target (str): Nombre de la columna objetivo.
-        sizeval: porcentaje del conjunto de datos que se usa para validación.
-        semilla: semilla de aleatorización
-        models_to_train (list, optional): Lista de nombres de modelos a entrenar.
-                                          Si es None, entrena todos los modelos definidos.
-
-    Returns:
-        pd.DataFrame: DataFrame con las métricas (Accuracy, Balanced Accuracy, Precision, Recall, F1) para cada modelo.
-    """
-
-    # Split data into features (X) and target (y)
-    X = strain.drop(columns=[target])
-    y = strain[target]
-    # Stratified split for training and validation sets
-    X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=sizeval, random_state=semilla, stratify=y)
-  
-    # Definir los modelos a entrenar (conjunto completo)
-
-    all_models = {
-        "lr": LogisticRegression(random_state=semilla, solver='liblinear'), # Usar solver compatible con multiclase
-        "ridge": RidgeClassifier(random_state=semilla),
-        "lda": LinearDiscriminantAnalysis(),
-        "qda": QuadraticDiscriminantAnalysis(),
-        "nb": GaussianNB(),
-        "knn": KNeighborsClassifier(),
-        "svc": SVC(kernel='linear', random_state=semilla),
-        "rbf": SVC(kernel='rbf', random_state=semilla),
-        "dt": DecisionTreeClassifier(random_state=semilla),
-        "rf": RandomForestClassifier(random_state=semilla),
-        "ada": AdaBoostClassifier(random_state=semilla),
-        "gbc": GradientBoostingClassifier(random_state=semilla),
-        "lightgbm": LGBMClassifier(random_state=semilla, verbose=-1),
-        "xgboost": XGBClassifier(random_state=semilla, eval_metric='logloss')
-    }
-
-    if models_to_train is None:
-        models = all_models
-    else:
-        models = {name: all_models[name] for name in models_to_train if name in all_models}
-
-    results = []
-
-    for name, model in models.items():
-        print(f"Entrenando {name}...")
-        try:
-            model.fit(X_train, y_train)
-            y_pred = model.predict(X_val)
-
-            # Calculate metrics
-            accuracy = accuracy_score(y_val, y_pred)
-            balanced_accuracy = balanced_accuracy_score(y_val, y_pred)
-            precision = precision_score(y_val, y_pred, average='weighted', zero_division=0)
-            recall = recall_score(y_val, y_pred, average='weighted', zero_division=0)
-            f1 = f1_score(y_val, y_pred, average='weighted', zero_division=0)
-
-            results.append({
-                'Algorithm': name,
-                'Accuracy': accuracy,
-                'Balanced_Accuracy': balanced_accuracy,
-                'Precision': precision,
-                'Recall': recall,
-                'F1-score': f1
-            })
-        except Exception as e:
-            print(f"Error entrenando {name}: {e}")
-            results.append({
-                'Algorithm': name,
-                'Accuracy': None,
-                'Balanced_Accuracy': None,
-                'Precision': None,
-                'Recall': None,
-                'F1-score': None
-            })
-
-    return pd.DataFrame(results)
-
-
-# Función para comparar diferentes modelos de regresión
-
-def comparar_regresores(strain, target, sizeval, semilla, models_to_train=None):
-    """
-    Entrena varios modelos de regresión y devuelve sus métricas de rendimiento.
-
-    Args:
-        strain (pd.DataFrame): Conjunto de entrenamiento.
-        target (str): Nombre de la columna objetivo.
-        sizeval: porcentaje del conjunto de datos que se usa para validación.
-        models_to_train (list, optional): Lista de nombres de modelos a entrenar.
-                                          Si es None, entrena todos los modelos definidos.
-
-    Returns:
-        pd.DataFrame: DataFrame con las métricas (MSE, RMSE, MAE, MAPE) para cada modelo.
-    """
-
-    # Split data into features (X) and target (y)
-    X = strain.drop(columns=[target])
-    y = strain[target]
-    # Stratified split for training and validation sets
-    X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=sizeval, random_state=semilla)
-    
-    # Definir los modelos a entrenar (conjunto completo)
-    all_regressors = {
-        "lr": LinearRegression(),
-        "lasso": Lasso(random_state=semilla),
-        "ridge": Ridge(random_state=semilla),
-        "knn": KNeighborsRegressor(),
-        "svr": SVR(),
-        "dt": DecisionTreeRegressor(random_state=semilla),
-        "rf": RandomForestRegressor(random_state=semilla),
-        "ada": AdaBoostRegressor(random_state=semilla),
-        "gbr": GradientBoostingRegressor(random_state=semilla),
-        "lightgbm": LGBMRegressor(random_state=semilla, verbose=-1), #verbose=-1 para evitar imprimir info de entrenamiento
-        "xgboost": XGBRegressor(random_state=semilla, use_label_encoder=False, eval_metric='rmse') # use_label_encoder=False y eval_metric para evitar warnings
-    }
-
-    # Seleccionar los modelos a entrenar según la lista proporcionada
-    if models_to_train is None:
-        regressors = all_regressors
-    else:
-        regressors = {name: all_regressors[name] for name in models_to_train if name in all_regressors}
-        if len(regressors) != len(models_to_train):
-            print("Advertencia: Algunos nombres de modelos en la lista proporcionada no son válidos.")
-
-    # Entrenamiento y almacenamienyo de métricas
-    results = []
-
-    for name, reg in regressors.items():
-        print(f"Entrenando {name}...")
-        try:
-            # Entrenar el modelo
-            reg.fit(X_train, y_train)
-
-            # Predecir en los datos de entrenamiento para calcular las métricas
-            y_pred = reg.predict(X_val)
-
-            # Calcular métricas
-            mse = mean_squared_error(y_val, y_pred)
-            rmse = np.sqrt(mse)
-            mae = mean_absolute_error(y_val, y_pred)
-            # Manejar el caso de división por cero en MAPE si hay valores de y_train igual a cero
-            mape = mean_absolute_percentage_error(y_val, y_pred) if not (y_val == 0).any() else np.nan
-
-            results.append({'Algorithm': name, 'MSE': mse, 'RMSE': rmse, 'MAE': mae, 'MAPE': mape})
-
-        except Exception as e:
-            print(f"Error entrenando {name}: {e}")
-            results.append({'Algorithm': name, 'MSE': None, 'RMSE': None, 'MAE': None, 'MAPE': None})
-
-    return pd.DataFrame(results)
-
 def reports_clas(modelo, xtrain, ytrain, xtest, ytest):
   '''
   Función para obtener el report de clasificación para un modelo de clasifcación. Porpociona los resultados para la muestra de entrenamiento y test
@@ -440,148 +72,80 @@ def reports_clas(modelo, xtrain, ytrain, xtest, ytest):
 
 def matriz_confusion(modelo, xtest, ytest):
   '''
-  Función que proporciona la matriz de confusión de un modelo de clasificación en términos de los porcentajes de clasificación correcta dentro de cada clase
+  Matriz de confusion de un modelo de clasificacion en % de acierto dentro de cada
+  clase real (normalizada por fila). Robusta a clases sin muestras (evita /0).
 
-  Argumentos de entrada:
-  - modelo: modelo entrenado
-  - xtest: inputs de test
-  - ytest: target de test
-
-  Return:
-  - Matriz de confusión
+  Argumentos: modelo entrenado, xtest, ytest. Return: matriz normalizada (np.array).
   '''
   from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
-
-  pred_test = modelo.predict(xtest)
-  # Matriz de confusión para datos de test
-  cm = confusion_matrix(ytest, pred_test, labels = modelo.classes_)
-  # Normalizamos para representar porcentajes en lugar de frecuencias
-  cm_normalized = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
-  # Solución gráfica
-  disp = ConfusionMatrixDisplay(confusion_matrix = cm_normalized, display_labels = modelo.classes_)
-  disp = disp.plot(cmap = plt.cm.Blues, values_format ='.2%')
-  plt.grid(False)
-  plt.show()
+  cm = confusion_matrix(ytest, modelo.predict(xtest), labels=modelo.classes_).astype(float)
+  fila = cm.sum(axis=1, keepdims=True)
+  cmn = np.divide(cm, fila, out=np.zeros_like(cm), where=fila != 0)
+  ConfusionMatrixDisplay(cmn, display_labels=modelo.classes_).plot(cmap=plt.cm.Blues, values_format='.1%')
+  plt.grid(False); plt.title('Matriz de confusion (% por clase real)'); plt.show()
+  return cmn
 
 def validar_modelo(modelo, xtrain, ytrain, score, folds):
   '''
-  Función que proporciona un análisis de validación cruzada con respecto a un score de evaluación
+  Validacion cruzada respecto a un score. Devuelve el score por fold (DataFrame)
+  e imprime media +/- desviacion.
 
-  Argumentos de entrada:
-  - modelo: modelo entrenado
-  - xtrain: inputs de entrenamiento
-  - ytrain: target de entrenamiento
-  - score: métrica de evaluación 
-  - folds: número de folds de validación cruzada
-
-  Return:
-  - tabla con el análisis de validación cruzada
+  Argumentos: modelo, xtrain, ytrain, score ('accuracy','precision','recall','f1','roc_auc'...), folds.
   '''
-
   from sklearn.model_selection import cross_val_score
   from sklearn.metrics import make_scorer, precision_score, recall_score, f1_score
-
-  # Determine the scoring strategy based on the 'score' parameter
-  if score == 'precision':
-    scorer = make_scorer(precision_score, average='weighted', zero_division=0)
-  elif score == 'recall':
-    scorer = make_scorer(recall_score, average='weighted', zero_division=0)
-  elif score == 'f1':
-    scorer = make_scorer(f1_score, average='weighted', zero_division=0)
-  else:
-    scorer = score # Use the original score string for other metrics
-
-  # Análsiis de validación cruzada
-  score_val = pd.DataFrame(cross_val_score(modelo, xtrain, ytrain, cv = folds,
-                                         scoring = scorer),
-                                         columns=['score'])
-  print("Análisis de validación cruzada")
-  print(score_val.describe().T)
+  scorers = {'precision': make_scorer(precision_score, average='weighted', zero_division=0),
+             'recall':    make_scorer(recall_score,    average='weighted', zero_division=0),
+             'f1':        make_scorer(f1_score,         average='weighted', zero_division=0)}
+  scorer = scorers.get(score, score)
+  sc = cross_val_score(modelo, xtrain, ytrain, cv=folds, scoring=scorer)
+  print(f"Validacion cruzada ({folds} folds, score={score}): media = {sc.mean():.4f} +/- {sc.std():.4f}")
+  return pd.DataFrame({'fold': range(1, len(sc)+1), 'score': sc})
 
 def curva_aprendizaje(modelo, X, y, score, folds):
   '''
-  Función que proporciona un análisis de validación cruzada con respecto a un score de evaluación
+  Curva de aprendizaje: dibuja la puntuacion en ENTRENAMIENTO y en VALIDACION
+  (con bandas de desviacion) frente al tamano de muestra, para diagnosticar
+  sesgo/varianza (sobre/infra-ajuste).
 
-  Argumentos de entrada:
-  - modelo: modelo entrenado
-  - X: inputs
-  - y: target
-  - score: métrica de evaluación ('accuracy','recall','f1')
-  - folds: número de folds de validación cruzada
-
-  Return:
-  - tabla con el análisis de validación cruzada
+  Argumentos: modelo, X, y, score, folds. Return: (train_sizes, train_mean, val_mean).
   '''
-  from sklearn.model_selection import cross_val_score, learning_curve
+  from sklearn.model_selection import learning_curve
+  sizes = np.linspace(0.2, 1.0, 8)
+  ts, tr, te = learning_curve(modelo, X, y, train_sizes=sizes, scoring=score, cv=folds)
+  trm, trs = tr.mean(1), tr.std(1); tem, tes = te.mean(1), te.std(1)
+  plt.figure(figsize=(7, 5))
+  plt.plot(ts, trm, 'o-',  color='steelblue', label='entrenamiento')
+  plt.fill_between(ts, trm-trs, trm+trs, alpha=.15, color='steelblue')
+  plt.plot(ts, tem, 'o--', color='red', label='validacion')
+  plt.fill_between(ts, tem-tes, tem+tes, alpha=.15, color='red')
+  plt.xlabel('n muestras de entrenamiento'); plt.ylabel(f'score ({score})')
+  plt.title('Curva de aprendizaje'); plt.legend(); plt.grid(True); plt.show()
+  return ts, trm, tem
 
-  #Fijamos tamaños de muestra de entrenamiento
-  size = np.arange(0.2, 0.91, 0.1)
-  # Evaluamos la exactitud en la muestra test para los diferentes tamaños
-  train_sizes, train_scores, test_scores = learning_curve(modelo, X, y,
-                                                        train_sizes = size,
-                                                        scoring = score,
-                                                        cv = folds)
-  # Representamos gráficamente
-  plt.plot(size, test_scores.mean(1), "o--", color="r")
-  plt.xlabel("Proporción muestra entrenamiento")
-  plt.ylabel("Promedio score")
-  plt.title("Curva de aprendizaje")
-  plt.grid(True)
-  plt.show()
-
-def select_variables(modelo, X, y, k_values, score):
+def select_variables(modelo, X, y, k_values, score, folds=10):
     """
-    Selecciona las k mejores características utilizando la Eliminación Recursiva de Características (RFE)
-    con validación cruzada y devuelve puntuaciones para cada k y las mejores características.
-
-    Args:
-        modelo: modelo de clasificación o regresión.
-        X (pd.DataFrame): matriz de inputs
-        y (pd.Series): vector de target
-        k_values (list): lista de valores de k donde debemos buscar la mejor combinación.
-        score (str): métrica de evaluación para la validación cruzada.
-
-    Returns:
-        tupla: una tupla que contien:
-            - pd.DataFrame: un dataframe con los valores de k y el score obtenido.
-            - list: una lista con los nomres de los inputs seleccionados
-            - int: El valor de k óptimo.
-            - float: El valor del score de validación cruzada para el mejor valor de k.
+    Selecciona las k mejores caracteristicas con Eliminacion Recursiva (RFE) y
+    validacion cruzada SIN fuga de informacion: la RFE se ajusta dentro de cada
+    particion (mediante un Pipeline). Devuelve (scores_df, variables, k_best, score_best).
     """
     from sklearn.feature_selection import RFE
     from sklearn.model_selection import cross_val_score
-
-    best_k = -1
-    best_score = -float('inf')
-    best_features = None
-    scores_list = []
-
+    from sklearn.pipeline import Pipeline
+    filas, best = [], (-float('inf'), None)
     for k in k_values:
-        # Nos aseguramos que el valor de k no exce el número de columnas de X
         if k > X.shape[1]:
-            print(f"Cuidado: k={k} es mayor que el número de columnas de X ({X.shape[1]}).")
+            print(f"Cuidado: k={k} es mayor que el numero de columnas de X ({X.shape[1]}).")
             continue
-
-        selector = RFE(modelo, n_features_to_select=k)
-        X_new = selector.fit_transform(X, y)
-
-        # Evaluamos el comportamiento del modelo completo
-        scores = cross_val_score(modelo, X_new, y, cv =10, scoring = score)
-        mean_score = scores.mean()
-
-        scores_list.append({'k': k, 'score': mean_score})
-
-        if mean_score > best_score:
-            best_score = mean_score
-            best_k = k
-            # Get the names of the selected features
-            best_features = X.columns[selector.support_].tolist()
-
-    scores_df = pd.DataFrame(scores_list)
-
-    return scores_df, best_features, best_k, best_score
-
-
+        pipe = Pipeline([('rfe', RFE(modelo, n_features_to_select=k)), ('clf', modelo)])
+        m = cross_val_score(pipe, X, y, cv=folds, scoring=score).mean()
+        filas.append({'k': k, 'score': m})
+        if m > best[0]:
+            best = (m, k)
+    sel = RFE(modelo, n_features_to_select=best[1]).fit(X, y)
+    variables = X.columns[sel.support_].tolist()
+    return pd.DataFrame(filas), variables, best[1], best[0]
+    
 def podar_tree_clf(modelo,xtrain,ytrain,xtest,ytest):
   '''
   Función para llevar a cabo la poda de un árbol de decisión
