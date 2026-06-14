@@ -21,7 +21,6 @@ from sklearn.metrics import (accuracy_score, balanced_accuracy_score,
                              precision_score, recall_score, f1_score, roc_auc_score)
 from lightgbm import LGBMClassifier
 from xgboost import XGBClassifier
-from preprocesar import *      # split_sample, preprocesar_datos
 
 def _scores_clase_positiva(clf, X):
     """Devuelve la puntuación de la clase positiva para la AUC.
