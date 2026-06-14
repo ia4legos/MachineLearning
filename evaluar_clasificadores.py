@@ -21,7 +21,12 @@ from sklearn.metrics import (accuracy_score, balanced_accuracy_score,
                              precision_score, recall_score, f1_score, roc_auc_score)
 from lightgbm import LGBMClassifier
 from xgboost import XGBClassifier
-
+# Métodos necesarios para el preprocesamiento
+from sklearn.model_selection import train_test_split            
+from sklearn.compose import ColumnTransformer                    
+from sklearn.pipeline import Pipeline                           
+from sklearn.impute import SimpleImputer                        
+from sklearn.preprocessing import StandardScaler, OneHotEncoder 
 
 def _scores_clase_positiva(clf, X):
     """Devuelve la puntuación de la clase positiva para la AUC.
