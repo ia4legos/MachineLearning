@@ -85,22 +85,31 @@ def matriz_confusion(modelo, xtest, ytest):
   plt.grid(False); plt.title('Matriz de confusion (% por clase real)'); plt.show()
   return cmn
 
+from sklearn.model_selection import StratifiedKFold, cross_val_score
+from sklearn.metrics import f1_score, precision_score, recall_score
 def validar_modelo(modelo, xtrain, ytrain, score, folds):
-  '''
-  Validacion cruzada respecto a un score. Devuelve el score por fold (DataFrame)
-  e imprime media +/- desviacion.
+    '''
+    Validacion cruzada respecto a un score. Devuelve el score por fold (DataFrame)
+    e imprime media +/- desviacion.
 
-  Argumentos: modelo, xtrain, ytrain, score ('accuracy','precision','recall','f1','roc_auc'...), folds.
-  '''
-  from sklearn.model_selection import cross_val_score
-  from sklearn.metrics import make_scorer, precision_score, recall_score, f1_score
-  scorers = {'precision': make_scorer(precision_score, average='weighted', zero_division=0),
-             'recall':    make_scorer(recall_score,    average='weighted', zero_division=0),
-             'f1':        make_scorer(f1_score,         average='weighted', zero_division=0)}
-  scorer = scorers.get(score, score)
-  sc = cross_val_score(modelo, xtrain, ytrain, cv=folds, scoring=scorer)
-  print(f"Validacion cruzada ({folds} folds, score={score}): media = {sc.mean():.4f} +/- {sc.std():.4f}")
-  return pd.DataFrame({'fold': range(1, len(sc)+1), 'score': sc})
+    Argumentos: modelo, xtrain, ytrain, score ('accuracy','precision','recall','f1','roc_auc'...), folds.
+    '''
+    # Se genera el objeto StratifiedKFold
+    # En clasificacion siempre es mejor usar StratifiedKFold
+    cv = StratifiedKFold(n_splits=folds, shuffle=True, random_state=42)
+    # Determinar si es un problema de clasificación multiclase
+    is_multiclass = ytrain.nunique() > 2
+    # Ajustar el parámetro 'average' para métricas multiclase si es necesario
+    scoring_metric = score
+    if is_multiclass and score in ['f1', 'precision', 'recall']:
+        scoring_metric = f'{score}_weighted'
+    # Calculamos la validación cruzada para cada fold
+    cv_results = cross_val_score(modelo, xtrain, ytrain, cv=cv, scoring=scoring_metric, n_jobs=-1)
+    # Creamos un DataFrame con los resultados
+    df_results = pd.DataFrame({'fold': range(1, folds + 1), 'score': cv_results})
+    # Imprimimos la media y la desviación estándar
+    print(f"Validacion cruzada ({folds} folds, score={score}): media = {np.mean(cv_results):.3f} +/- {np.std(cv_results):.3f}")
+    return df_results
 
 def curva_aprendizaje(modelo, X, y, score, folds):
   '''
