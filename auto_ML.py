@@ -746,3 +746,61 @@ def select_variables(modelo, X, y, k_values, score, average='weighted', cv=5):
     scores_df = pd.DataFrame(scores_list)
     return scores_df, best_features, best_k, best_score
         
+def plot_radar_chart(coefs_df, title='Radar Chart', figsize=(10, 10)):
+    """
+    Generates a radar chart of scaled coefficients for each class from a given DataFrame.
+
+    Args:
+        coefs_df (pd.DataFrame): DataFrame containing coefficients, where index are class names
+                                 and columns are feature names.
+        title (str): Title of the radar chart.
+        figsize (tuple): Figure size for the plot.
+    """
+    # Get feature names and class names
+    features = coefs_df.columns
+    classes = coefs_df.index
+
+    # Number of variables we're plotting. Will be used for the number of axes.
+    num_vars = len(features)
+
+    # Calculate the angle for each feature
+    angles = np.linspace(0, 2 * np.pi, num_vars, endpoint=False).tolist()
+
+    # The plot is circular, so we need to "close the circle" for each plot series
+    # by adding the first value at the end. For features, we repeat the first one.
+    features = list(features)
+    features.append(features[0])
+    angles.append(angles[0])
+
+    fig, ax = plt.subplots(figsize=figsize, subplot_kw=dict(polar=True))
+
+    # Iterate through each class and plot its coefficients
+    for class_name in classes:
+        class_values = coefs_df.loc[class_name].values
+        max_abs_val = np.max(np.abs(class_values))
+        
+        if max_abs_val > 0:
+            # Scale coefficients to -1 to 1 based on the maximum absolute value within the class
+            scaled_values = (class_values / max_abs_val).tolist()
+        else:
+            scaled_values = class_values.tolist() # Handle case where all coefficients are zero
+
+        scaled_values.append(scaled_values[0])  # Close the circle
+
+        ax.plot(angles, scaled_values, linewidth=2, linestyle='solid', label=class_name)
+
+    ax.set_theta_offset(np.pi / 2)
+    ax.set_theta_direction(-1)
+
+    ax.set_xticks(angles[:-1])
+    ax.set_xticklabels(features[:-1], fontsize=10)
+
+    # Adjust the y-axis (radial axis) to show magnitudes better.
+    ax.set_rlabel_position(0)
+    ax.set_yticks([-0.5, 0, 0.5, 1])  # Example y-ticks for scaled data
+    ax.set_yticklabels(['-0.5', '0', '0.5', '1.0'], color='gray', size=8)
+    ax.set_ylim(-1, 1)  # Set appropriate limits based on scaled data
+
+    plt.title(title, size=16, color='black', y=1.1)
+    plt.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1))
+    plt.show()
