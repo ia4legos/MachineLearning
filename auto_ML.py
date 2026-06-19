@@ -704,3 +704,10 @@ def reports_reg(modelo, xtrain, ytrain, xtest, ytest):
   print("\nMétricas de regresión en la muestra test")
   print(f"RMSE: {mean_squared_error(ytest, ypred_test, squared=False):.3f}")
   print(f"R2: {r2_score(ytest, ypred_test):.3f}")
+
+def arbol_graphviz(modelo, nombres, clases):
+    from sklearn.tree import export_graphviz
+    import graphviz
+    dot = export_graphviz(modelo, feature_names=list(nombres), class_names=list(clases),
+                          filled=True, rounded=True, special_characters=True)
+    return graphviz.Source(dot)
