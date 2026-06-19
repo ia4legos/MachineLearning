@@ -90,7 +90,7 @@ def matriz_confusion(modelo, xtest, ytest,labels=None):
   # The pre-calculated 'cmn' is not directly used by from_estimator for plotting.
 
   # Create a figure and an axes object before plotting
-  fig, ax = plt.subplots(figsize=(6, 6))
+  fig, ax = plt.subplots(figsize=(10, 10))
   # Ensure ax is a single Axes object, even if plt.subplots returns a 1-element array for some reason.
   if isinstance(ax, np.ndarray):
       ax = ax.flatten()[0]
