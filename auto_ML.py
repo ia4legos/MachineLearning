@@ -70,7 +70,7 @@ def reports_clas(modelo, xtrain, ytrain, xtest, ytest,labels=None):
   print("Métricas de clasificación en la muestra de entrenamiento")
   print(classification_report(ytrain, clase_train,labels=labels,zero_division=0))
   print("\n Métricas de clasificación en la muestra test")
-  print(classification_report(ytest, clase_test,labels=labels,zero_division=0)))
+  print(classification_report(ytest, clase_test,labels=labels,zero_division=0))
 
 def matriz_confusion(modelo, xtest, ytest,labels=None):
   '''
