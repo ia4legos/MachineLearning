@@ -27,6 +27,13 @@ from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from urllib.request import urlretrieve
+for fichero in ['preprocesar.py','pca_funciones.py', 'auto_ML.py']:
+    urlretrieve(f'https://raw.githubusercontent.com/ia4legos/MachineLearning/refs/heads/main/{fichero}', fichero)
+from preprocesar import *
+from pca_funciones import *
+from auto_ML import *
+
 
 def _scores_clase_positiva(clf, X):
     """Devuelve la puntuación de la clase positiva para la AUC.
