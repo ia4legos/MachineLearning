@@ -215,60 +215,7 @@ def curva_aprendizaje(modelo, X, y, score='r2', folds=5):
     plt.grid(True)
     plt.show()
 
-def curva_aprendizaje(modelo, X, y, score='r2', folds=5):
-    '''
-    Genera una curva de aprendizaje para modelos de regresión.
-    Muestra cómo evoluciona la métrica de validación al aumentar el tamaño del set de entrenamiento.
-    '''
 
-    # 1. Configuración de la métrica
-    if score == 'rmse':
-        sklearn_score = 'neg_root_mean_squared_error'
-    elif score == 'r2_ajustado':
-        sklearn_score = 'r2'
-    else:
-        sklearn_score = score
-
-    # --- CORRECCIÓN AQUÍ ---
-    # Usamos linspace para asegurar que el máximo sea exactamente 1.0 y no 1.00000001
-    # Esto genera 5 puntos equidistantes entre el 20% y el 100%
-    sizes_prop = np.linspace(0.2, 1.0, 5)
-
-    # 2. Calcular curva de aprendizaje
-    train_sizes_abs, train_scores, test_scores = learning_curve(
-        modelo,
-        X,
-        y,
-        train_sizes=sizes_prop,
-        scoring=sklearn_score,
-        cv=folds,
-        n_jobs=-1
-    )
-
-    # 3. Procesamiento de resultados
-    mean_test_scores = test_scores.mean(axis=1)
-
-    if score == 'rmse':
-        mean_test_scores = -mean_test_scores
-        titulo_y = "RMSE (Menor es mejor)"
-    elif score == 'r2_ajustado':
-        p = X.shape[1]
-        # Fórmula vectorizada para ajustar R2
-        mean_test_scores = 1 - (1 - mean_test_scores) * (train_sizes_abs - 1) / (train_sizes_abs - p - 1)
-        titulo_y = "R2 Ajustado (Mayor es mejor)"
-    else:
-        titulo_y = f"Score promedio ({score})";
-
-    # 4. Gráfico
-    plt.figure(figsize=(8, 5))
-    plt.plot(sizes_prop, mean_test_scores, "o--", color="r", label="Validación (CV)")
-
-    plt.xlabel("Proporción muestra entrenamiento")
-    plt.ylabel(titulo_y)
-    plt.title(f"Curva de Aprendizaje - {score.upper()}")
-    plt.legend()
-    plt.grid(True)
-    plt.show()
     
 def podar_tree_clf(modelo,xtrain,ytrain,xtest,ytest):
   '''
