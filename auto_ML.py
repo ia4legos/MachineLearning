@@ -47,7 +47,7 @@ from xgboost import XGBClassifier, XGBRegressor
 from sklearn.metrics import accuracy_score, precision_score, balanced_accuracy_score, f1_score, recall_score
 from sklearn.metrics import roc_auc_score, roc_curve, classification_report, confusion_matrix, ConfusionMatrixDisplay
 
-def reports_clas(modelo, xtrain, ytrain, xtest, ytest):
+def reports_clas(modelo, xtrain, ytrain, xtest, ytest,labels=None):
   '''
   Función para obtener el report de clasificación para un modelo de clasifcación. Porpociona los resultados para la muestra de entrenamiento y test
 
@@ -57,6 +57,8 @@ def reports_clas(modelo, xtrain, ytrain, xtest, ytest):
   - ytrain: target de entrenamiento
   - xtest: inputs de test
   - ytest: target de test
+  - labels: Lista de etiquetas para el classification_report y la matriz de confusión.
+              Si es None, se usarán las etiquetas por defecto de classification_report.
 
   Return
    - reporte de clasificación para muestra de entrenamiento y test
@@ -66,22 +68,24 @@ def reports_clas(modelo, xtrain, ytrain, xtest, ytest):
   clase_train = modelo.predict(xtrain)
   clase_test = modelo.predict(xtest)
   print("Métricas de clasificación en la muestra de entrenamiento")
-  print(classification_report(ytrain, clase_train))
+  print(classification_report(ytrain, clase_train,labels=labels,zero_division=0))
   print("\n Métricas de clasificación en la muestra test")
-  print(classification_report(ytest, clase_test))
+  print(classification_report(ytest, clase_test,labels=labels,zero_division=0)))
 
-def matriz_confusion(modelo, xtest, ytest):
+def matriz_confusion(modelo, xtest, ytest,labels=None):
   '''
   Matriz de confusion de un modelo de clasificacion en % de acierto dentro de cada
   clase real (normalizada por fila). Robusta a clases sin muestras (evita /0).
 
-  Argumentos: modelo entrenado, xtest, ytest. Return: matriz normalizada (np.array).
+  Argumentos: modelo entrenado, xtest, ytest. Return: matriz normalizada (np.array).     
+     - labels: Lista de etiquetas para el classification_report y la matriz de confusión.
+              Si es None, se usarán las etiquetas por defecto de classification_report.
   '''
   from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
   cm = confusion_matrix(ytest, modelo.predict(xtest), labels=modelo.classes_).astype(float)
   fila = cm.sum(axis=1, keepdims=True)
   cmn = np.divide(cm, fila, out=np.zeros_like(cm), where=fila != 0)
-  ConfusionMatrixDisplay(cmn, display_labels=modelo.classes_).plot(cmap=plt.cm.Blues, values_format='.1%')
+  ConfusionMatrixDisplay.from_estimator(model, xtest, ytest, cmap='Blues', ax=ax, values_format='.1%', display_labels=labels)
   plt.grid(False); plt.title('Matriz de confusion (% por clase real)'); plt.show()
   return cmn
 
