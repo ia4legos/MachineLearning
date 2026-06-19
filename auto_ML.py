@@ -29,7 +29,8 @@ from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 # División muestras
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, KFold, StratifiedKFold, learning_curve, cross_val_score # Added learning_curve, cross_val_score
+from sklearn.feature_selection import RFECV # Added this import
 
 # Modelos de clasificación
 from sklearn.linear_model import LogisticRegression, RidgeClassifier, LinearRegression, Lasso, Ridge
@@ -45,11 +46,11 @@ from xgboost import XGBClassifier, XGBRegressor
 
 # métricas de clasificación
 from sklearn.metrics import accuracy_score, precision_score, balanced_accuracy_score, f1_score, recall_score
-from sklearn.metrics import roc_auc_score, roc_curve, classification_report, confusion_matrix, ConfusionMatrixDisplay
+from sklearn.metrics import roc_auc_score, roc_curve, classification_report, confusion_matrix, ConfusionMatrixDisplay, make_scorer # Added make_scorer
+from sklearn.preprocessing import LabelEncoder # Added LabelEncoder
 
-def reports_clas(modelo, xtrain, ytrain, xtest, ytest,labels=None):
-  '''
-  Función para obtener el report de clasificación para un modelo de clasifcación. Porpociona los resultados para la muestra de entrenamiento y test
+def reports_clas(modelo, xtrain, ytrain, xtest, ytest, labels=None):
+  '''Función para obtener el report de clasificación para un modelo de clasificación. Proporciona los resultados para la muestra de entrenamiento y test
 
   Argumentos:
   - modelo: modelo entrenado
@@ -57,34 +58,26 @@ def reports_clas(modelo, xtrain, ytrain, xtest, ytest,labels=None):
   - ytrain: target de entrenamiento
   - xtest: inputs de test
   - ytest: target de test
-  - labels: Lista de etiquetas para el classification_report y la matriz de confusión.
-              Si es None, se usarán las etiquetas por defecto de classification_report.
 
   Return
    - reporte de clasificación para muestra de entrenamiento y test
   '''
-  from sklearn.metrics import classification_report
-
   clase_train = modelo.predict(xtrain)
   clase_test = modelo.predict(xtest)
   print("Métricas de clasificación en la muestra de entrenamiento")
-  print(classification_report(ytrain, clase_train,labels=labels,zero_division=0))
+  print(classification_report(ytrain, clase_train, labels=labels, zero_division=0))
   print("\n Métricas de clasificación en la muestra test")
-  print(classification_report(ytest, clase_test,labels=labels,zero_division=0))
+  print(classification_report(ytest, clase_test, labels=labels, zero_division=0))
 
-def matriz_confusion(modelo, xtest, ytest,labels=None):
-  '''
-  Matriz de confusion de un modelo de clasificacion en % de acierto dentro de cada
+
+def matriz_confusion(modelo, xtest, ytest, labels=None):
+  '''Matriz de confusión de un modelo de clasificación en % de acierto dentro de cada
   clase real (normalizada por fila). Robusta a clases sin muestras (evita /0).
 
   Argumentos: modelo entrenado, xtest, ytest. Return: matriz normalizada (np.array).
      - labels: Lista de etiquetas para el classification_report y la matriz de confusión.
               Si es None, se usarán las etiquetas por defecto de classification_report.
   '''
-  from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
-  import matplotlib.pyplot as plt
-  import numpy as np
-
   # ConfusionMatrixDisplay.from_estimator will calculate the matrix internally
   # and normalize it directly when normalize='true'.
   # The pre-calculated 'cmn' is not directly used by from_estimator for plotting.
@@ -96,7 +89,7 @@ def matriz_confusion(modelo, xtest, ytest,labels=None):
       ax = ax.flatten()[0]
 
   ConfusionMatrixDisplay.from_estimator(modelo, xtest, ytest, cmap='Blues', ax=ax, values_format='.1%', display_labels=labels, normalize='true')
-  plt.grid(False); plt.title('Matriz de confusion (% por clase real)'); plt.show()
+  plt.grid(False); plt.title('Matriz de confusión (% por clase real)'); plt.show()
   # Return the normalized confusion matrix array if needed elsewhere (though not used in plot directly)
   cm_raw = confusion_matrix(ytest, modelo.predict(xtest), labels=modelo.classes_).astype(float)
   fila = cm_raw.sum(axis=1, keepdims=True)
@@ -105,73 +98,177 @@ def matriz_confusion(modelo, xtest, ytest,labels=None):
 
 from sklearn.model_selection import StratifiedKFold, cross_val_score
 from sklearn.metrics import f1_score, precision_score, recall_score
-def validar_modelo(modelo, xtrain, ytrain, score, folds):
-    '''
-    Validacion cruzada respecto a un score. Devuelve el score por fold (DataFrame)
-    e imprime media +/- desviacion.
-
-    Argumentos: modelo, xtrain, ytrain, score ('accuracy','precision','recall','f1','roc_auc'...), folds.
-    '''
-    # Se genera el objeto StratifiedKFold
-    # En clasificacion siempre es mejor usar StratifiedKFold
-    cv = StratifiedKFold(n_splits=folds, shuffle=True, random_state=42)
-    # Determinar si es un problema de clasificación multiclase
-    is_multiclass = ytrain.nunique() > 2
-    # Ajustar el parámetro 'average' para métricas multiclase si es necesario
-    scoring_metric = score
-    if is_multiclass and score in ['f1', 'precision', 'recall']:
-        scoring_metric = f'{score}_weighted'
-    # Calculamos la validación cruzada para cada fold
-    cv_results = cross_val_score(modelo, xtrain, ytrain, cv=cv, scoring=scoring_metric, n_jobs=-1)
-    # Creamos un DataFrame con los resultados
-    df_results = pd.DataFrame({'fold': range(1, folds + 1), 'score': cv_results})
-    # Imprimimos la media y la desviación estándar
-    print(f"Validacion cruzada ({folds} folds, score={score}): media = {np.mean(cv_results):.3f} +/- {np.std(cv_results):.3f}")
-    return df_results
-
-def curva_aprendizaje(modelo, X, y, score, folds):
-  '''
-  Curva de aprendizaje: dibuja la puntuacion en ENTRENAMIENTO y en VALIDACION
-  (con bandas de desviacion) frente al tamano de muestra, para diagnosticar
-  sesgo/varianza (sobre/infra-ajuste).
-
-  Argumentos: modelo, X, y, score, folds. Return: (train_sizes, train_mean, val_mean).
-  '''
-  from sklearn.model_selection import learning_curve
-  sizes = np.linspace(0.2, 1.0, 8)
-  ts, tr, te = learning_curve(modelo, X, y, train_sizes=sizes, scoring=score, cv=folds)
-  trm, trs = tr.mean(1), tr.std(1); tem, tes = te.mean(1), te.std(1)
-  plt.figure(figsize=(7, 5))
-  plt.plot(ts, trm, 'o-',  color='steelblue', label='entrenamiento')
-  plt.fill_between(ts, trm-trs, trm+trs, alpha=.15, color='steelblue')
-  plt.plot(ts, tem, 'o--', color='red', label='validacion')
-  plt.fill_between(ts, tem-tes, tem+tes, alpha=.15, color='red')
-  plt.xlabel('n muestras de entrenamiento'); plt.ylabel(f'score ({score})')
-  plt.title('Curva de aprendizaje'); plt.legend(); plt.grid(True); plt.show()
-  return ts, trm, tem
-
-def select_variables(modelo, X, y, k_values, score, folds=10):
+def validar_modelo(modelo, X, y, metric='accuracy', folds=5):
     """
-    Selecciona las k mejores caracteristicas con Eliminacion Recursiva (RFE) y
-    validacion cruzada SIN fuga de informacion: la RFE se ajusta dentro de cada
-    particion (mediante un Pipeline). Devuelve (scores_df, variables, k_best, score_best).
+    Valida un modelo de clasificación usando validación cruzada estratificada.
+
+    Parámetros
+    ----------
+    modelo : object
+        Clasificador de scikit-learn.
+    X : pandas.DataFrame o numpy.ndarray
+        Características de entrada.
+    y : pandas.Series o numpy.ndarray
+        Variable objetivo.
+    metric : str, optional
+        Métrica de evaluación ('accuracy', 'precision', 'recall', 'f1', 'balanced_accuracy', 'roc_auc').
+        Por defecto es 'accuracy'.
+    folds : int, optional
+        Número de folds para la validación cruzada. Por defecto es 5.
+
+    Returns
+    -------
+    pandas.DataFrame
+        DataFrame con los resultados de la validación cruzada por fold.
     """
-    from sklearn.feature_selection import RFE
-    from sklearn.model_selection import cross_val_score
-    from sklearn.pipeline import Pipeline
-    filas, best = [], (-float('inf'), None)
-    for k in k_values:
-        if k > X.shape[1]:
-            print(f"Cuidado: k={k} es mayor que el numero de columnas de X ({X.shape[1]}).")
-            continue
-        pipe = Pipeline([('rfe', RFE(modelo, n_features_to_select=k)), ('clf', modelo)])
-        m = cross_val_score(pipe, X, y, cv=folds, scoring=score).mean()
-        filas.append({'k': k, 'score': m})
-        if m > best[0]:
-            best = (m, k)
-    sel = RFE(modelo, n_features_to_select=best[1]).fit(X, y)
-    variables = X.columns[sel.support_].tolist()
-    return pd.DataFrame(filas), variables, best[1], best[0]
+    le = LabelEncoder()
+    y_encoded = le.fit_transform(y)
+    n_clases = len(np.unique(y_encoded))
+
+    # Adaptar la métrica para clasificación multiclase si es necesario
+    if n_clases > 2:
+        if metric == 'precision':
+            scoring = make_scorer(precision_score, average='weighted', zero_division=0)
+        elif metric == 'recall':
+            scoring = make_scorer(recall_score, average='weighted', zero_division=0)
+        elif metric == 'f1':
+            scoring = make_scorer(f1_score, average='weighted', zero_division=0)
+        elif metric == 'balanced_accuracy':
+            scoring = make_scorer(balanced_accuracy_score)
+        elif metric == 'roc_auc':
+            # roc_auc for multiclass is ovr by default but can be specified
+            scoring = make_scorer(roc_auc_score, average='weighted', multi_class='ovr')
+        else: # accuracy
+            scoring = make_scorer(accuracy_score)
+    else: # Binary classification
+        if metric == 'precision':
+            scoring = make_scorer(precision_score, zero_division=0)
+        elif metric == 'recall':
+            scoring = make_scorer(recall_score, zero_division=0)
+        elif metric == 'f1':
+            scoring = make_scorer(f1_score, zero_division=0)
+        elif metric == 'balanced_accuracy':
+            scoring = make_scorer(balanced_accuracy_score)
+        elif metric == 'roc_auc':
+            scoring = make_scorer(roc_auc_score)
+        else: # accuracy
+            scoring = make_scorer(accuracy_score)
+
+    cv_scores = cross_val_score(modelo, X, y_encoded, cv=StratifiedKFold(folds), scoring=scoring, n_jobs=-1)
+
+    print(f"Validacion cruzada ({folds} folds, score={metric}): media = {cv_scores.mean():.3f} +/- {cv_scores.std():.3f}")
+
+    return pd.DataFrame({'fold': range(1, folds + 1), 'score': cv_scores})
+
+def curva_aprendizaje(modelo, X, y, score='r2', folds=5):
+    '''
+    Genera una curva de aprendizaje para modelos de regresión.
+    Muestra cómo evoluciona la métrica de validación al aumentar el tamaño del set de entrenamiento.
+    '''
+
+    # 1. Configuración de la métrica
+    if score == 'rmse':
+        sklearn_score = 'neg_root_mean_squared_error'
+    elif score == 'r2_ajustado':
+        sklearn_score = 'r2'
+    else:
+        sklearn_score = score
+
+    # --- CORRECCIÓN AQUÍ ---
+    # Usamos linspace para asegurar que el máximo sea exactamente 1.0 y no 1.00000001
+    # Esto genera 5 puntos equidistantes entre el 20% y el 100%
+    sizes_prop = np.linspace(0.2, 1.0, 5)
+
+    # 2. Calcular curva de aprendizaje
+    train_sizes_abs, train_scores, test_scores = learning_curve(
+        modelo,
+        X,
+        y,
+        train_sizes=sizes_prop,
+        scoring=sklearn_score,
+        cv=folds,
+        n_jobs=-1
+    )
+
+    # 3. Procesamiento de resultados
+    mean_test_scores = test_scores.mean(axis=1)
+
+    if score == 'rmse':
+        mean_test_scores = -mean_test_scores
+        titulo_y = "RMSE (Menor es mejor)"
+    elif score == 'r2_ajustado':
+        p = X.shape[1]
+        # Fórmula vectorizada para ajustar R2
+        mean_test_scores = 1 - (1 - mean_test_scores) * (train_sizes_abs - 1) / (train_sizes_abs - p - 1)
+        titulo_y = "R2 Ajustado (Mayor es mejor)"
+    else:
+        titulo_y = f"Score promedio ({score})";
+
+    # 4. Gráfico
+    plt.figure(figsize=(8, 5))
+    plt.plot(sizes_prop, mean_test_scores, "o--", color="r", label="Validación (CV)")
+
+    plt.xlabel("Proporción muestra entrenamiento")
+    plt.ylabel(titulo_y)
+    plt.title(f"Curva de Aprendizaje - {score.upper()}")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+def curva_aprendizaje(modelo, X, y, score='r2', folds=5):
+    '''
+    Genera una curva de aprendizaje para modelos de regresión.
+    Muestra cómo evoluciona la métrica de validación al aumentar el tamaño del set de entrenamiento.
+    '''
+
+    # 1. Configuración de la métrica
+    if score == 'rmse':
+        sklearn_score = 'neg_root_mean_squared_error'
+    elif score == 'r2_ajustado':
+        sklearn_score = 'r2'
+    else:
+        sklearn_score = score
+
+    # --- CORRECCIÓN AQUÍ ---
+    # Usamos linspace para asegurar que el máximo sea exactamente 1.0 y no 1.00000001
+    # Esto genera 5 puntos equidistantes entre el 20% y el 100%
+    sizes_prop = np.linspace(0.2, 1.0, 5)
+
+    # 2. Calcular curva de aprendizaje
+    train_sizes_abs, train_scores, test_scores = learning_curve(
+        modelo,
+        X,
+        y,
+        train_sizes=sizes_prop,
+        scoring=sklearn_score,
+        cv=folds,
+        n_jobs=-1
+    )
+
+    # 3. Procesamiento de resultados
+    mean_test_scores = test_scores.mean(axis=1)
+
+    if score == 'rmse':
+        mean_test_scores = -mean_test_scores
+        titulo_y = "RMSE (Menor es mejor)"
+    elif score == 'r2_ajustado':
+        p = X.shape[1]
+        # Fórmula vectorizada para ajustar R2
+        mean_test_scores = 1 - (1 - mean_test_scores) * (train_sizes_abs - 1) / (train_sizes_abs - p - 1)
+        titulo_y = "R2 Ajustado (Mayor es mejor)"
+    else:
+        titulo_y = f"Score promedio ({score})";
+
+    # 4. Gráfico
+    plt.figure(figsize=(8, 5))
+    plt.plot(sizes_prop, mean_test_scores, "o--", color="r", label="Validación (CV)")
+
+    plt.xlabel("Proporción muestra entrenamiento")
+    plt.ylabel(titulo_y)
+    plt.title(f"Curva de Aprendizaje - {score.upper()}")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
     
 def podar_tree_clf(modelo,xtrain,ytrain,xtest,ytest):
   '''
@@ -579,3 +676,31 @@ def curva_aprendizaje_regresion(modelo, X, y, score, folds):
     plt.legend()
     plt.grid(True)
     plt.show()
+
+def reports_reg(modelo, xtrain, ytrain, xtest, ytest):
+  '''
+  Función para obtener el report de regresión para un modelo.
+  Proporciona los resultados para la muestra de entrenamiento y test.
+
+  Argumentos:s
+  - modelo: modelo entrenado
+  - xtrain: inputs de entrenamiento
+  - ytrain: target de entrenamiento
+  - xtest: inputs de test
+  - ytest: target de test
+
+  Return
+   - reporte de regresión para muestra de entrenamiento y test
+  '''
+  from sklearn.metrics import mean_squared_error, r2_score
+
+  ypred_train = modelo.predict(xtrain)
+  ypred_test = modelo.predict(xtest)
+
+  print("Métricas de regresión en la muestra de entrenamiento")
+  print(f"RMSE: {mean_squared_error(ytrain, ypred_train, squared=False):.3f}")
+  print(f"R2: {r2_score(ytrain, ypred_train):.3f}")
+
+  print("\nMétricas de regresión en la muestra test")
+  print(f"RMSE: {mean_squared_error(ytest, ypred_test, squared=False):.3f}")
+  print(f"R2: {r2_score(ytest, ypred_test):.3f}")
