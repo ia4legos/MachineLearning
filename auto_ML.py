@@ -85,7 +85,7 @@ def matriz_confusion(modelo, xtest, ytest,labels=None):
   cm = confusion_matrix(ytest, modelo.predict(xtest), labels=modelo.classes_).astype(float)
   fila = cm.sum(axis=1, keepdims=True)
   cmn = np.divide(cm, fila, out=np.zeros_like(cm), where=fila != 0)
-  ConfusionMatrixDisplay.from_estimator(model, xtest, ytest, cmap='Blues', ax=ax, values_format='.1%', display_labels=labels)
+  ConfusionMatrixDisplay.from_estimator(modelo, xtest, ytest, cmap='Blues', ax=ax, values_format='.1%', display_labels=labels)
   plt.grid(False); plt.title('Matriz de confusion (% por clase real)'); plt.show()
   return cmn
 
