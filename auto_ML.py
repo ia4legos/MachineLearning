@@ -658,3 +658,91 @@ def arbol_graphviz(modelo, nombres, clases):
     dot = export_graphviz(modelo, feature_names=list(nombres), class_names=list(clases),
                           filled=True, rounded=True, special_characters=True)
     return graphviz.Source(dot)
+
+from sklearn.model_selection import cross_validate   # añade este import si no lo tienes
+
+def select_variables(modelo, X, y, k_values, score, average='weighted', cv=5):
+    """
+    Selección de variables para CLASIFICACIÓN basada en el ranking de RFE.
+    1. Ordena todas las predictoras por importancia usando RFE.
+    2. Evalúa iterativamente los modelos incrementando k (top-k del ranking).
+    3. Devuelve las variables ordenadas de mayor a menor importancia según RFE.
+
+    Args:
+        modelo: modelo de clasificación (debe exponer coef_ o feature_importances_ para RFE).
+        X (pd.DataFrame): matriz de inputs.
+        y (pd.Series): vector de target.
+        k_values (list): lista de valores de k a probar.
+        score (str): métrica a optimizar ('accuracy', 'f1', 'recall').
+        average (str): promedio para f1/recall ('weighted', 'macro', 'micro' o 'binary').
+                       Por defecto 'weighted'.
+        cv (int): nº de particiones de validación cruzada (estratificada por defecto).
+    Returns:
+        tupla:
+            - pd.DataFrame: tabla con k, accuracy, f1, recall y la nueva variable.
+            - list: las mejores variables ORDENADAS por importancia.
+            - int: k óptimo.
+            - float: score óptimo (de la métrica elegida).
+    """
+
+    # Validación del score
+    valid_scores = ['accuracy', 'f1', 'recall']
+    if score not in valid_scores:
+        raise ValueError(f"El parámetro 'score' debe ser uno de: {valid_scores}")
+
+    # Scorings para cross_validate (una sola CV, las tres métricas a la vez).
+    # Con average='binary' se usan 'f1' y 'recall' (pos_label=1 por defecto).
+    scoring = {
+        'accuracy': 'accuracy',
+        'f1':       'f1'     if average == 'binary' else f'f1_{average}',
+        'recall':   'recall' if average == 'binary' else f'recall_{average}',
+    }
+
+    print("Calculando el ranking global de variables (puede tardar un momento)...")
+
+    # 1. OBTENER EL ORDEN DE IMPORTANCIA GLOBAL (Ranking RFE)
+    # n_features_to_select=1 -> RFE calcula el ranking de eliminación de TODAS.
+    # Ranking 1 = última en eliminarse = la más importante.
+    rfe_global = RFE(modelo, n_features_to_select=1)
+    rfe_global.fit(X, y)
+    mapa_ranking = pd.DataFrame({
+        'Variable': X.columns,
+        'Ranking': rfe_global.ranking_
+    }).sort_values('Ranking')                      # 1 (mejor), 2, ...
+    variables_ordenadas = mapa_ranking['Variable'].tolist()
+
+    # -------------------------------------------------------------------------
+
+    best_k = -1
+    best_score = -float('inf')                     # en clasificación: MAYOR = MEJOR
+    best_features = None
+    scores_list = []
+    print(f"Evaluando combinaciones optimizando por: {score.upper()}...\n")
+
+    # 2. EVALUACIÓN ITERATIVA SIGUIENDO EL ORDEN
+    for k in k_values:
+        if k > len(variables_ordenadas): continue
+        current_vars = variables_ordenadas[:k]      # top-k de la lista ya ordenada
+        X_new = X[current_vars]
+
+        # --- CÁLCULO DE MÉTRICAS (validación cruzada, una sola pasada) ---
+        cv_res = cross_validate(modelo, X_new, y, cv=cv, scoring=scoring)
+        metrics = {
+            'k': k,
+            'accuracy': round(cv_res['test_accuracy'].mean(), 4),
+            'f1':       round(cv_res['test_f1'].mean(), 4),
+            'recall':   round(cv_res['test_recall'].mean(), 4),
+            'Nueva Variable': current_vars[-1],     # última variable agregada
+        }
+        scores_list.append(metrics)
+
+        # --- OPTIMIZACIÓN (maximizar) ---
+        current_score_value = metrics[score]
+        if current_score_value > best_score:
+            best_score = current_score_value
+            best_k = k
+            best_features = current_vars            # ya está ordenada por importancia
+
+    scores_df = pd.DataFrame(scores_list)
+    return scores_df, best_features, best_k, best_score
+        
