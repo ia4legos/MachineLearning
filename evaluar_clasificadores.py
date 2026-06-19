@@ -22,6 +22,12 @@ from sklearn.metrics import (accuracy_score, balanced_accuracy_score,
 from lightgbm import LGBMClassifier
 from xgboost import XGBClassifier
 
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+
 def _scores_clase_positiva(clf, X):
     """Devuelve la puntuación de la clase positiva para la AUC.
     Usa predict_proba si existe; si no, decision_function; si ninguna, None."""
