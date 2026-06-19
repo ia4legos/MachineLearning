@@ -77,16 +77,30 @@ def matriz_confusion(modelo, xtest, ytest,labels=None):
   Matriz de confusion de un modelo de clasificacion en % de acierto dentro de cada
   clase real (normalizada por fila). Robusta a clases sin muestras (evita /0).
 
-  Argumentos: modelo entrenado, xtest, ytest. Return: matriz normalizada (np.array).     
+  Argumentos: modelo entrenado, xtest, ytest. Return: matriz normalizada (np.array).
      - labels: Lista de etiquetas para el classification_report y la matriz de confusión.
               Si es None, se usarán las etiquetas por defecto de classification_report.
   '''
   from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
-  cm = confusion_matrix(ytest, modelo.predict(xtest), labels=modelo.classes_).astype(float)
-  fila = cm.sum(axis=1, keepdims=True)
-  cmn = np.divide(cm, fila, out=np.zeros_like(cm), where=fila != 0)
-  ConfusionMatrixDisplay.from_estimator(modelo, xtest, ytest, cmap='Blues', ax=ax, values_format='.1%', display_labels=labels)
+  import matplotlib.pyplot as plt
+  import numpy as np
+
+  # ConfusionMatrixDisplay.from_estimator will calculate the matrix internally
+  # and normalize it directly when normalize='true'.
+  # The pre-calculated 'cmn' is not directly used by from_estimator for plotting.
+
+  # Create a figure and an axes object before plotting
+  fig, ax = plt.subplots(figsize=(6, 6))
+  # Ensure ax is a single Axes object, even if plt.subplots returns a 1-element array for some reason.
+  if isinstance(ax, np.ndarray):
+      ax = ax.flatten()[0]
+
+  ConfusionMatrixDisplay.from_estimator(modelo, xtest, ytest, cmap='Blues', ax=ax, values_format='.1%', display_labels=labels, normalize='true')
   plt.grid(False); plt.title('Matriz de confusion (% por clase real)'); plt.show()
+  # Return the normalized confusion matrix array if needed elsewhere (though not used in plot directly)
+  cm_raw = confusion_matrix(ytest, modelo.predict(xtest), labels=modelo.classes_).astype(float)
+  fila = cm_raw.sum(axis=1, keepdims=True)
+  cmn = np.divide(cm_raw, fila, out=np.zeros_like(cm_raw), where=fila != 0)
   return cmn
 
 from sklearn.model_selection import StratifiedKFold, cross_val_score
