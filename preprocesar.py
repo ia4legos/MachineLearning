@@ -396,3 +396,46 @@ def comparar_clasificador_multicls(strain, target, sizeval=0.3, semilla=42,
                             'Recall': None, 'F1': None, 'AUC': None})
 
     return pd.DataFrame(results).set_index('Algorithm')
+
+def preprocesar_datos_se(df, target=None, preprocessor=None):
+    """
+    Preprocesa un DataFrame SIN fuga de información.
+    Solo aplica: imputación de missings (numéricas y categóricas) y
+    codificación One-Hot de las categóricas. NO estandariza las numéricas.
+    - preprocessor=None  -> AJUSTA con `df` (train), transforma y devuelve (df_prep, preprocessor).
+    - preprocessor dado   -> solo TRANSFORMA `df` (test) con lo aprendido del train.
+    Devuelve SIEMPRE una tupla (df_preprocesado, preprocessor).
+    """
+    dfs = df.copy() if target is None else df.drop(columns=target)
+    # Las booleanas se tratan como texto (consistente en train y test)
+    bool_features = dfs.select_dtypes(include='bool').columns
+    if len(bool_features):
+        dfs[bool_features] = dfs[bool_features].astype(str)
+    if preprocessor is None:
+        # AJUSTE (con la muestra de entrenamiento)
+        numeric_features = dfs.select_dtypes(include=np.number).columns.tolist()
+        categorical_features = dfs.select_dtypes(include=['object', 'category']).columns.tolist()
+        if not numeric_features and not categorical_features:
+            raise ValueError("No hay variables numéricas ni categóricas que preprocesar.")
+        transformers = []
+        if numeric_features:
+            # Solo imputación de missings (sin estandarización)
+            transformers.append(('num', Pipeline([
+                ('imputer', SimpleImputer(strategy='median'))]), numeric_features))
+        if categorical_features:
+            transformers.append(('cat', Pipeline([
+                ('imputer', SimpleImputer(strategy='most_frequent')),
+                ('onehot', OneHotEncoder(handle_unknown='ignore', drop='first',
+                                         sparse_output=False))]), categorical_features))
+        preprocessor = ColumnTransformer(transformers=transformers)
+        preprocessor.set_output(transform='pandas')
+        df_prep = preprocessor.fit_transform(dfs)
+    else:
+        # TRANSFORMACIÓN (con test, usando lo aprendido del train)
+        df_prep = preprocessor.transform(dfs)
+    # Quitamos los prefijos 'num__' / 'cat__'
+    df_prep.columns = [c.split('__', 1)[-1] for c in df_prep.columns]
+    # Reincorporamos el target sin transformar
+    if target is not None:
+        df_prep = pd.concat([df_prep, df[target]], axis=1)
+    return df_prep, preprocessor
