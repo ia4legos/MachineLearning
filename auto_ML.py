@@ -804,3 +804,42 @@ def plot_radar_chart(coefs_df, title='Radar Chart', figsize=(10, 10)):
     plt.title(title, size=16, color='black', y=1.1)
     plt.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1))
     plt.show()
+
+def descriptivo_target_predictoras(df, target, ncols=3, ancho=5, alto=4):
+    """
+    Representa el target frente a cada predictora:
+      - numéricas  -> diagrama de caja por clase del target
+      - categóricas -> barras con el % de cada clase del target dentro de la categoría
+    """
+    predictoras = [c for c in df.columns if c != target]
+    numericas = df[predictoras].select_dtypes(include=np.number).columns.tolist()
+
+    n = len(predictoras)
+    nrows = int(np.ceil(n / ncols))
+    fig, axes = plt.subplots(nrows, ncols, figsize=(ancho * ncols, alto * nrows))
+    axes = np.array(axes).reshape(-1)
+
+    for ax, var in zip(axes, predictoras):
+        if var in numericas:
+            # Numérica: diagrama de caja según la clase del target
+            sns.boxplot(data=df, x=target, y=var, hue=target, legend=False, ax=ax)
+            ax.set_title(f'{var} según {target}')
+        else:
+            # Categórica: % de cada clase del target dentro de cada categoría
+            ct = pd.crosstab(df[var], df[target], normalize='index').mul(100)
+            ct.plot(kind='bar', ax=ax, width=0.8)
+            ax.set_ylabel('Porcentaje (%)')
+            ax.set_xlabel(var)
+            ax.set_title(f'{var} vs {target}')
+            ax.tick_params(axis='x', rotation=45)
+            ax.legend(title=target, fontsize=8)
+            ax.margins(y=0.12)
+            for contenedor in ax.containers:
+                ax.bar_label(contenedor, fmt='%.0f%%', fontsize=7, padding=1)
+
+    # Ocultamos los ejes sobrantes de la cuadrícula
+    for ax in axes[n:]:
+        ax.set_visible(False)
+
+    fig.tight_layout()
+    plt.show()
