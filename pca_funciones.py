@@ -124,41 +124,25 @@ def _paleta_target(y):
     return sns.color_palette("coolwarm", as_cmap=True)
 
 
-def biplot_coordenadas(projected, y, hg, wd):
+def biplot_coordenadas(projected, y=None, hg=6, wd=1.3):
     """
     Representa las coordenadas (scores) de las muestras en las dos primeras componentes,
-    coloreadas según la variable objetivo.
-    Asegura que todas las etiquetas del target aparecen en la leyenda.
+    coloreadas opcionalmente según la variable objetivo.
 
     Parámetros:
-    - projected: DataFrame de coordenadas de cada muestra en las CP
-    - y: variable objetivo (Series o array-like)
-    - hg: alto (height) del gráfico
-    - wd: aspecto (aspect) del gráfico
+    - projected: DataFrame de coordenadas de cada muestra en las CP (scores)
+    - y: (Opcional) Serie o array-like con la variable objetivo (etiquetas de grupo).
+         Si es None, los puntos no se colorearán por grupos.
+    - hg: Alto (height) del gráfico.
+    - wd: Aspecto (aspect) del gráfico (relación ancho/alto).
     """
-    datos = projected.copy()
-    # Aseguramos que y es una Serie de pandas para un comportamiento consistente
-    if not isinstance(y, pd.Series):
-        y = pd.Series(y)
-    datos['Target'] = y
-
-    # Usamos una paleta estándar como 'tab10' para una mejor distinción de categorías
-    # y gestionamos la leyenda explícitamente.
-    g = sns.relplot(data=datos, x="CP1", y="CP2", hue="Target",
-                    palette='tab10',
-                    height=hg, aspect=wd,
-                    s=50, # Ajustamos el tamaño de los puntos para mejor visibilidad
-                    alpha=0.7) # Añadimos algo de transparencia
-
-    g.ax.axvline(x=0, color='r', linestyle='dotted')
-    g.ax.axhline(y=0, color='r', linestyle='dotted')
-    g.ax.set_xlabel("Componente 1")
-    g.ax.set_ylabel("Componente 2")
-    g.set(title="Biplot de Coordenadas (CP1 vs CP2) con todas las categorías de Y")
-
-    # Añadimos la leyenda fuera del área del gráfico para mayor claridad
-    g.add_legend(title='Target', bbox_to_anchor=(1.05, 1), loc='upper left', frameon=True)
-    plt.tight_layout()
+    sns.relplot(x='CP1', y='CP2', hue=y, data=projected, s=60, 
+                height=hg, aspect=wd, palette='tab10', legend='full')
+    plt.title('Gráfico de Coordenadas de las Muestras')
+    plt.xlabel(f'CP1 ({round(projected.columns[0].std() * 100, 2)}% varianza)') # Esto es una suposición, se debería usar la varianza explicada del PCA
+    plt.ylabel(f'CP2 ({round(projected.columns[1].std() * 100, 2)}% varianza)') # Esto es una suposición, se debería usar la varianza explicada del PCA
+    plt.axhline(0, color='gray', lw=.5)
+    plt.axvline(0, color='gray', lw=.5)
     plt.show()
 
 
