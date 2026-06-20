@@ -224,7 +224,7 @@ def graf_PCA(mpca, figura=(12, 4.5)):
   ax[1].plot(comp, acum, 'o-')
   ax[1].axhline(0.70, ls='--', color='red')      # umbral del 70 %
   ax[1].axhline(0.80, ls='--', color='orange')      # umbral del 80 %
-  ax[1].axhline(0.90, ls='--', color='yellow')      # umbral del 70 %
+  ax[1].axhline(0.90, ls='--', color='green')      # umbral del 70 %
   ax[1].set_title('Varianza explicada acumulada')
   ax[1].set_xlabel('nº de componentes')
   ax[1].set_ylabel('Proporción acumulada')
