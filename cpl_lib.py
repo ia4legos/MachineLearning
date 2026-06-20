@@ -212,3 +212,46 @@ def biplot_conjoint(loadings, projected, y, hg, wd):
   plt.xlabel("Componente 1")
   plt.ylabel("Componente 2")
   plt.show()
+
+def graf_PCA(mpca, figura=(12, 4.5)):
+  """
+  Función para obtener el gráfico de sedimentación, el de varianza acumualda, y la tabla de varianza acumulada
+  para un modelo PCA.
+
+  Argumentos entrada:
+  - mpca: modelo PCA a evaluar
+  - figura: tamaño de la figura a generar
+
+  Devuelve:
+  - gráfico sedimentación
+  - gráfico varianza acumulada
+  - tabla varianza acumulada
+  """
+  ratio = mpca.explained_variance_ratio_        # proporción explicada por cada componente
+  acum = np.cumsum(ratio)
+  comp = np.arange(1, len(ratio) + 1)
+  # Diseño de gráfico
+  fig, ax = plt.subplots(1, 2, figsize=figura)
+  # Gráfico de sedimentación
+  ax[0].plot(comp, ratio, 'o-')
+  ax[0].set_title('Gráfico de sedimentación (scree)')
+  ax[0].set_xlabel('nº de componentes')
+  ax[0].set_ylabel('Varianza explicada')
+  # Gráfico de varianza acumualda
+  ax[1].plot(comp, acum, 'o-')
+  ax[1].axhline(0.70, ls='--', color='red')      # umbral del 70 %
+  ax[1].axhline(0.80, ls='--', color='orange')      # umbral del 80 %
+  ax[1].axhline(0.90, ls='--', color='yellow')      # umbral del 70 %
+  ax[1].set_title('Varianza explicada acumulada')
+  ax[1].set_xlabel('nº de componentes')
+  ax[1].set_ylabel('Proporción acumulada')
+  ax[1].set_ylim(0, 1.02)
+  plt.tight_layout()
+  plt.show()
+  # Tabla de varianza acumulada
+  varexp = 100*ratio
+  cumvar = pd.DataFrame(varexp.cumsum(), columns=["Varianza acumulada"]) # Convert cumvar to DataFrame
+  expvar = pd.DataFrame(varexp, columns=["Varianza explicada"])
+  pd.options.display.float_format = '{:.4f}'.format
+  tabla = pd.concat([expvar, cumvar], axis=1).set_index(comp)
+  return tabla
