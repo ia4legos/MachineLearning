@@ -124,23 +124,25 @@ def _paleta_target(y):
     return sns.color_palette("coolwarm", as_cmap=True)
 
 
-def biplot_coordenadas(projected, y=None, hg=6, wd=1.3):
+def biplot_coordenadas(projected, explained_variance_ratio, y=None, hg=6, wd=1.3):
     """
     Representa las coordenadas (scores) de las muestras en las dos primeras componentes,
     coloreadas opcionalmente según la variable objetivo.
 
     Parámetros:
     - projected: DataFrame de coordenadas de cada muestra en las CP (scores)
+    - explained_variance_ratio: Array o lista con la proporción de varianza explicada por cada componente.
     - y: (Opcional) Serie o array-like con la variable objetivo (etiquetas de grupo).
          Si es None, los puntos no se colorearán por grupos.
     - hg: Alto (height) del gráfico.
     - wd: Aspecto (aspect) del gráfico (relación ancho/alto).
     """
-    sns.relplot(x='CP1', y='CP2', hue=y, data=projected, s=60, 
+    sns.relplot(x='CP1', y='CP2', hue=y, data=projected, s=60,
                 height=hg, aspect=wd, palette='tab10', legend='full')
     plt.title('Gráfico de Coordenadas de las Muestras')
-    plt.xlabel(f'CP1 ({round(projected.columns[0].std() * 100, 2)}% varianza)') # Esto es una suposición, se debería usar la varianza explicada del PCA
-    plt.ylabel(f'CP2 ({round(projected.columns[1].std() * 100, 2)}% varianza)') # Esto es una suposición, se debería usar la varianza explicada del PCA
+    # Usamos la explained_variance_ratio del PCA para las etiquetas de los ejes
+    plt.xlabel(f'CP1 ({round(explained_variance_ratio[0] * 100, 2)}% varianza)')
+    plt.ylabel(f'CP2 ({round(explained_variance_ratio[1] * 100, 2)}% varianza)')
     plt.axhline(0, color='gray', lw=.5)
     plt.axvline(0, color='gray', lw=.5)
     plt.show()
