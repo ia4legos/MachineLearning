@@ -161,7 +161,7 @@ def biplot_coordenadas(projected, explained_variance_ratio, y=None, hg=6, wd=1.3
     plt.show()
 
 
-def biplot_conjoint(loadings, projected, y, hg, wd):
+def biplot_conjoint(loadings, projected, y=None, hg=6, wd=1.3):
     """
     Biplot: combina coordenadas (scores) de las muestras y loadings de las variables
     en las dos primeras componentes.
@@ -169,26 +169,41 @@ def biplot_conjoint(loadings, projected, y, hg, wd):
     Parámetros:
     - loadings: DataFrame de loadings (con columna 'Variable')
     - projected: DataFrame de coordenadas de cada muestra en las CP
-    - y: variable objetivo (Series)
+    - y: (Opcional) Serie o array-like con la variable objetivo (etiquetas de grupo).
+         Si es None, los puntos no se colorearán por grupos.
     - hg: alto (height) del gráfico
     - wd: aspecto (aspect) del gráfico
     """
     datos = projected.copy()
-    datos['Target'] = np.asarray(y)
-    # Escalamos los scores para que convivan con los loadings
+
+    # Escalamos los scores para que convivan con las flechas de loadings
     scalex = 1.0 / (datos["CP1"].max() - datos["CP1"].min())
     scaley = 1.0 / (datos["CP2"].max() - datos["CP2"].min())
     datos["CP1e"] = datos["CP1"] * scalex
     datos["CP2e"] = datos["CP2"] * scaley
 
-    g = sns.relplot(data=datos, x="CP1e", y="CP2e", hue="Target",
-                    palette=_paleta_target(y), height=hg, aspect=wd)
+    plot_kwargs = {
+        "data": datos,
+        "x": "CP1e",
+        "y": "CP2e",
+        "height": hg,
+        "aspect": wd
+    }
+
+    if y is not None:
+        datos['Target'] = np.asarray(y)
+        plot_kwargs['hue'] = "Target"
+        plot_kwargs['palette'] = _paleta_target(y)
+
+    g = sns.relplot(**plot_kwargs)
     ax = g.ax
+
     for i in range(len(loadings)):
         ax.arrow(0, 0, loadings.CP1.iloc[i], loadings.CP2.iloc[i], color='black')
         ax.scatter(loadings.CP1.iloc[i], loadings.CP2.iloc[i], color='black')
         ax.text(loadings.CP1.iloc[i] + 0.01, loadings.CP2.iloc[i], loadings.Variable.iloc[i],
                 ha='left', va='center')
+
     ax.axvline(x=0, color='r', linestyle='dotted')
     ax.axhline(y=0, color='r', linestyle='dotted')
     ax.set_xlabel("Componente 1"); ax.set_ylabel("Componente 2")
