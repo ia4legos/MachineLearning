@@ -8,7 +8,17 @@ import seaborn as sns
 
 sns.set_theme(style="whitegrid")   # formato común: fondo blanco
 
-
+def _paleta_target(y_series):
+    """
+    Generates a color palette for the given y series.
+    This is a placeholder function to resolve the NameError, assuming the original
+    intent was to create a suitable palette based on unique categories.
+    """
+    unique_categories = y_series.unique()
+    # Using 'viridis' as a general-purpose colormap for demonstration.
+    # You can change it to other seaborn palettes like 'tab10', 'Set1', etc.
+    return sns.color_palette("viridis", n_colors=len(unique_categories))
+    
 def var_contrib(solcp, X):
     """
     Obtiene los loadings de cada variable y las coordenadas (scores) de los sujetos.
