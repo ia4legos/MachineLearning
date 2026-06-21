@@ -62,17 +62,30 @@ def plot_var_explained(solcp, lx, ly):
     plt.show()
 
 
-def optim_ncomp(solcp, vexp):
+def optim_ncomp(solcp):
     """
     Devuelve el nº mínimo de componentes para alcanzar una variabilidad explicada dada.
 
     Parámetros:
     - solcp: objeto PCA ya ajustado
-    - vexp: variabilidad explicada requerida, en porcentaje (p. ej. 90)
+
+    Devuelve:
+    - Estiamdor kaiser
+    - Selcción en función de varainza explicada
     """
-    cumVar = np.cumsum(solcp.explained_variance_ratio_) * 100
-    valor = int(np.sum(cumVar < vexp) + 1)
-    return min(valor, solcp.n_components_)
+    ratio = solcp.explained_variance_ratio_
+    acum = np.cumsum(ratio)
+    vexp_targets = [0.7, 0.8, 0.9] # Percentages to check (e.g., 70%, 80%, 90%)
+    kaiser = (solcp.explained_variance_ > 1).sum()
+    print("===== Componentes seleccionadas por criterio =====")
+    print(f"Criterio de Kaiser: {kaiser} componentes")
+    valor = []
+    for varianza_target in vexp_targets:
+      # Corrected: compare 'acum' with the single 'varianza_target', not the whole 'vexp_targets' list
+      temp = np.sum(acum < varianza_target) + 1
+      valor.append(min(temp,solcp.n_components_))
+    for i in range(len(vexp_targets)):
+      print(f"Para el {vexp_targets[i]*100}% de VE: {valor[i]} componentes")
 
 
 def plot_contrib(loadings, cp, lx, ly):
